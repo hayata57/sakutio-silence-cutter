@@ -1,7 +1,7 @@
 {
   "name": "sakutio-silence-cutter",
   "private": true,
-  "version": "0.1.0-poc",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "prepare:core": "node scripts/prepare-ffmpeg-core.mjs",

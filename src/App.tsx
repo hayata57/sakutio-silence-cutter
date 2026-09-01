@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ProgressPanel } from './components/ProgressPanel'
+import { SakutioFooter } from './components/SakutioFooter'
+import { SakutioHeader } from './components/SakutioHeader'
 import { StepSection } from './components/StepSection'
 import {
   buildKeepSegments,
@@ -15,14 +17,11 @@ import {
   appendEtaSample,
   averageEtaSamples,
   estimateRemainingSeconds,
-  describeCaughtError,
   formatEta,
-  formatPocLogEntries,
-  formatPocLogEntry,
-  type PocLogEntry,
-} from './logic/pocMetrics'
+} from './logic/progressMetrics'
 import { buildCutCommand, buildSilenceDetectCommand } from './services/ffmpegCommands'
 import { FFmpegSession, StoppedError } from './services/ffmpegSession'
+import { saveBlob } from './utils/saveFile'
 import {
   classifyMedia,
   createOutputName,
@@ -46,42 +45,6 @@ const PRESETS: Record<Exclude<PresetKey, 'custom'>, Pick<DetectionSettings, 'thr
 }
 
 const ACCEPT = '.mp3,.wav,.m4a,.mp4,.mov,audio/mpeg,audio/wav,audio/mp4,video/mp4,video/quicktime'
-const POC_LOG_ENABLED = true
-const POC_LOG_STORAGE_KEY = 'sakutio-silence-cutter-poc-logs-v1'
-const POC_LOG_STORAGE_MAX_ENTRIES = 10
-
-function loadPocLogs(): PocLogEntry[] {
-  if (!POC_LOG_ENABLED || typeof window === 'undefined') return []
-  try {
-    const raw = sessionStorage.getItem(POC_LOG_STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed.slice(0, POC_LOG_STORAGE_MAX_ENTRIES) as PocLogEntry[] : []
-  } catch {
-    return []
-  }
-}
-
-function persistPocLogs(entries: PocLogEntry[]): void {
-  if (!POC_LOG_ENABLED || typeof window === 'undefined') return
-  try {
-    sessionStorage.setItem(POC_LOG_STORAGE_KEY, JSON.stringify(entries.slice(0, POC_LOG_STORAGE_MAX_ENTRIES)))
-  } catch {
-    // PoCログは補助機能。容量超過等では画面内メモリの記録だけを継続する。
-  }
-}
-
-function pocResultLabel(entry: PocLogEntry): string {
-  if (entry.result === 'success') return '完了'
-  if (entry.result === 'stopped') return '停止'
-  if (entry.result === 'error') return 'エラー'
-  return '検出完了'
-}
-
-function realtimeSpeed(originalDuration: number | null, elapsedMs: number | null): number | null {
-  if (!originalDuration || !elapsedMs || elapsedMs <= 0) return null
-  return originalDuration / (elapsedMs / 1000)
-}
 
 function phaseLabel(phase: RunPhase): string {
   switch (phase) {
@@ -107,44 +70,12 @@ function userErrorMessage(error: unknown): string {
   return '処理中にエラーが発生しました。設定やファイルを確認して、もう一度お試しください。'
 }
 
-function beginRuntimeErrorCapture(target: string[]): () => void {
-  if (typeof window === 'undefined') return () => undefined
-  const push = (value: string) => {
-    target.push(value)
-    if (target.length > 20) target.splice(0, target.length - 20)
-  }
-  const onError = (event: ErrorEvent) => {
-    const detail = event.error instanceof Error
-      ? `${event.error.name}: ${event.error.message}`
-      : event.message
-    push(`window.error: ${detail}`)
-  }
-  const onUnhandledRejection = (event: PromiseRejectionEvent) => {
-    const diagnostics = describeCaughtError(event.reason)
-    push(`unhandledrejection: ${diagnostics.caughtErrorName ?? '-'}: ${diagnostics.caughtErrorMessage ?? '-'}`)
-  }
-  window.addEventListener('error', onError)
-  window.addEventListener('unhandledrejection', onUnhandledRejection)
-  return () => {
-    window.removeEventListener('error', onError)
-    window.removeEventListener('unhandledrejection', onUnhandledRejection)
-  }
-}
-
 export default function App() {
   const sessionRef = useRef<FFmpegSession | null>(null)
   const playerRef = useRef<HTMLMediaElement | null>(null)
   const previewEndRef = useRef<number | null>(null)
   const objectUrlRef = useRef<string | null>(null)
   const outputUrlRef = useRef<string | null>(null)
-  const detectionMeasurementRef = useRef<{
-    logId: string
-    executedAt: string
-    elapsedMs: number
-    ffmpegLogs: string[]
-    ffmpegCommand: string[]
-    exitCode: number | null
-  } | null>(null)
   const cutStartedAtRef = useRef<number | null>(null)
   const etaSamplesRef = useRef<number[]>([])
   const lastEtaSampleAtRef = useRef(0)
@@ -171,8 +102,6 @@ export default function App() {
   const [output, setOutput] = useState<OutputResult | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [remainingEtaSeconds, setRemainingEtaSeconds] = useState<number | null>(null)
-  const [pocLogs, setPocLogs] = useState<PocLogEntry[]>(loadPocLogs)
-  const [pocLogMessage, setPocLogMessage] = useState('')
 
   useEffect(() => {
     sessionRef.current = new FFmpegSession()
@@ -191,15 +120,6 @@ export default function App() {
   const canDetect = Boolean(file && mediaKind && !busy)
   const canCut = detected && summary.selectedCount > 0 && !busy
 
-  function upsertPocLog(entry: PocLogEntry): void {
-    if (!POC_LOG_ENABLED) return
-    setPocLogs((current) => {
-      const next = [entry, ...current.filter((item) => item.id !== entry.id)]
-      persistPocLogs(next)
-      return next
-    })
-  }
-
   function updateCutEta(progressRatio: number): void {
     const startedAt = cutStartedAtRef.current
     if (startedAt === null) return
@@ -215,32 +135,12 @@ export default function App() {
     setRemainingEtaSeconds(averageEtaSamples(samples))
   }
 
-  async function copyPocLogs(): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(formatPocLogEntries(pocLogs, true))
-      setPocLogMessage('ログをコピーしました。')
-    } catch {
-      setPocLogMessage('ログをコピーできませんでした。テキスト保存をご利用ください。')
+  async function saveOutputFile(): Promise<void> {
+    if (!output) return
+    const result = await saveBlob(output.blob, output.name)
+    if (result === 'saved') {
+      setStatusMessage(`「${output.name}」を保存しました。`)
     }
-  }
-
-  function savePocLogs(): void {
-    const text = formatPocLogEntries(pocLogs, true)
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-    anchor.href = url
-    anchor.download = `sakutio-silence-cutter-poc-log-${stamp}.txt`
-    anchor.click()
-    URL.revokeObjectURL(url)
-    setPocLogMessage('ログをテキストファイルとして保存しました。')
-  }
-
-  function clearPocLogs(): void {
-    setPocLogs([])
-    try { sessionStorage.removeItem(POC_LOG_STORAGE_KEY) } catch { /* noop */ }
-    setPocLogMessage('PoC検証ログを消去しました。')
   }
 
   function clearOutput(): void {
@@ -252,7 +152,6 @@ export default function App() {
   }
 
   function resetAnalysis(): void {
-    detectionMeasurementRef.current = null
     setIntervals([])
     setDetected(false)
     setPreviewingId(null)
@@ -317,15 +216,10 @@ export default function App() {
     if (!file || !mediaKind || !sessionRef.current) return
     const session = sessionRef.current
     const runId = session.beginRun()
-    const startedAt = performance.now()
-    const executedAt = new Date().toISOString()
-    const logId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     let prepared: { path: string; mounted: boolean } | null = null
     let command: string[] = []
     let ffmpegExitCode: number | null = null
     const logs: string[] = []
-    const runtimeErrors: string[] = []
-    const endRuntimeErrorCapture = beginRuntimeErrorCapture(runtimeErrors)
 
     setErrorMessage('')
     setStatusMessage('')
@@ -362,48 +256,6 @@ export default function App() {
       }
       if (duration <= 0) setDuration(resolvedDuration)
       const parsed = parseSilenceDetectLogs(logs, resolvedDuration)
-      const detectionElapsedMs = performance.now() - startedAt
-      const detectedSummary = summarizeCuts(parsed, settings.retainTotalSeconds, resolvedDuration)
-      detectionMeasurementRef.current = {
-        logId,
-        executedAt,
-        elapsedMs: detectionElapsedMs,
-        ffmpegLogs: [...logs],
-        ffmpegCommand: [...command],
-        exitCode: ffmpegExitCode,
-      }
-      upsertPocLog({
-        id: logId,
-        executedAt,
-        fileName: file.name,
-        extension: getExtension(file.name),
-        inputSize: file.size,
-        originalDuration: resolvedDuration,
-        detectedSilenceCount: parsed.length,
-        removedSilenceCount: detectedSummary.selectedCount,
-        estimatedOutputDuration: detectedSummary.estimatedDuration,
-        actualOutputDuration: null,
-        outputSize: null,
-        detectionElapsedMs,
-        encodingElapsedMs: null,
-        totalElapsedMs: detectionElapsedMs,
-        averageRealtimeSpeed: realtimeSpeed(resolvedDuration, detectionElapsedMs),
-        result: 'detected',
-        stage: 'detection',
-        errorSummary: null,
-        detectionFfmpegLogs: [...logs],
-        cutFfmpegLogs: [],
-        detectionFfmpegCommand: [...command],
-        detectionExitCode: ffmpegExitCode,
-        cutFfmpegCommand: [],
-        cutExitCode: undefined,
-        caughtErrorName: null,
-        caughtErrorMessage: null,
-        caughtErrorStack: null,
-        workerError: null,
-        lastFfmpegLog: logs.at(-1) ?? null,
-        runtimeErrors: [...runtimeErrors],
-      })
       setIntervals(parsed)
       setDetected(true)
       setProgress(1)
@@ -412,39 +264,8 @@ export default function App() {
         ? '無音区間は見つかりませんでした。判定を「強め」にするか、詳細設定を調整できます。'
         : `${parsed.length}件の無音区間を検出しました。自動ではカットせず、下の結果を確認できます。`)
     } catch (error) {
-      const detectionElapsedMs = performance.now() - startedAt
       const stopped = error instanceof StoppedError
       const errorSummary = stopped ? null : userErrorMessage(error)
-      const diagnostics = describeCaughtError(error)
-      upsertPocLog({
-        id: logId,
-        executedAt,
-        fileName: file.name,
-        extension: getExtension(file.name),
-        inputSize: file.size,
-        originalDuration: duration > 0 ? duration : parseFfmpegDuration(logs),
-        detectedSilenceCount: null,
-        removedSilenceCount: null,
-        estimatedOutputDuration: null,
-        actualOutputDuration: null,
-        outputSize: null,
-        detectionElapsedMs,
-        encodingElapsedMs: null,
-        totalElapsedMs: detectionElapsedMs,
-        averageRealtimeSpeed: realtimeSpeed(duration > 0 ? duration : parseFfmpegDuration(logs), detectionElapsedMs),
-        result: stopped ? 'stopped' : 'error',
-        stage: 'detection',
-        errorSummary,
-        detectionFfmpegLogs: [...logs],
-        cutFfmpegLogs: [],
-        detectionFfmpegCommand: [...command],
-        detectionExitCode: ffmpegExitCode,
-        cutFfmpegCommand: [],
-        cutExitCode: undefined,
-        ...diagnostics,
-        lastFfmpegLog: logs.at(-1) ?? null,
-        runtimeErrors: [...runtimeErrors],
-      })
       if (stopped) {
         setPhase('stopped')
         setStatusMessage('処理を停止しました。設定やファイルはそのまま再実行できます。')
@@ -454,7 +275,6 @@ export default function App() {
         console.error(error)
       }
     } finally {
-      endRuntimeErrorCapture()
       if (prepared) await session.cleanupInput(prepared)
     }
   }
@@ -529,18 +349,10 @@ export default function App() {
 
     const session = sessionRef.current
     const runId = session.beginRun()
-    const cutStepStartedAt = performance.now()
-    const detectionMeasurement = detectionMeasurementRef.current
-    const logId = detectionMeasurement?.logId ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    const executedAt = detectionMeasurement?.executedAt ?? new Date().toISOString()
     let prepared: { path: string; mounted: boolean } | null = null
-    let encodingStartedAt: number | null = null
-    let encodingElapsedMs: number | null = null
     let command: string[] = []
     let ffmpegExitCode: number | null = null
     const logs: string[] = []
-    const runtimeErrors: string[] = []
-    const endRuntimeErrorCapture = beginRuntimeErrorCapture(runtimeErrors)
     const extension = getExtension(file.name)
     const outputPath = `silence-cut-output.${extension}`
 
@@ -580,10 +392,8 @@ export default function App() {
       command = buildCutCommand(prepared.path, outputPath, mediaKind, extension, keepSegments)
       setPhase('cutting')
       setProgress(0.12)
-      encodingStartedAt = performance.now()
-      cutStartedAtRef.current = encodingStartedAt
+      cutStartedAtRef.current = performance.now()
       ffmpegExitCode = await session.exec(command, runId)
-      encodingElapsedMs = performance.now() - encodingStartedAt
       cutStartedAtRef.current = null
       if (ffmpegExitCode !== 0) throw new Error(`FFmpeg exit ${ffmpegExitCode}: ${logs.slice(-16).join('\n')}`)
 
@@ -601,6 +411,7 @@ export default function App() {
         actualOutputDuration = null
       }
       setOutput({
+        blob,
         url,
         name: createOutputName(file.name),
         size: blob.size,
@@ -608,84 +419,13 @@ export default function App() {
         duration: actualOutputDuration,
       })
       await session.deleteFile(outputPath)
-      const cutStepElapsedMs = performance.now() - cutStepStartedAt
-      const detectionElapsedMs = detectionMeasurement?.elapsedMs ?? null
-      const totalElapsedMs = (detectionElapsedMs ?? 0) + cutStepElapsedMs
-      upsertPocLog({
-        id: logId,
-        executedAt,
-        fileName: file.name,
-        extension,
-        inputSize: file.size,
-        originalDuration: duration,
-        detectedSilenceCount: intervals.length,
-        removedSilenceCount: summary.selectedCount,
-        estimatedOutputDuration: summary.estimatedDuration,
-        actualOutputDuration,
-        outputSize: blob.size,
-        detectionElapsedMs,
-        encodingElapsedMs,
-        totalElapsedMs,
-        averageRealtimeSpeed: realtimeSpeed(duration, totalElapsedMs),
-        result: 'success',
-        stage: 'cut',
-        errorSummary: null,
-        detectionFfmpegLogs: detectionMeasurement?.ffmpegLogs ?? [],
-        cutFfmpegLogs: [...logs],
-        detectionFfmpegCommand: detectionMeasurement?.ffmpegCommand ?? [],
-        detectionExitCode: detectionMeasurement?.exitCode,
-        cutFfmpegCommand: [...command],
-        cutExitCode: ffmpegExitCode,
-        caughtErrorName: null,
-        caughtErrorMessage: null,
-        caughtErrorStack: null,
-        workerError: null,
-        lastFfmpegLog: logs.at(-1) ?? null,
-        runtimeErrors: [...runtimeErrors],
-      })
       setProgress(1)
       setPhase('done')
       setStatusMessage('無音カットが完了しました。完成ファイルを保存できます。')
     } catch (error) {
-      if (encodingStartedAt !== null && encodingElapsedMs === null) {
-        encodingElapsedMs = performance.now() - encodingStartedAt
-      }
       cutStartedAtRef.current = null
-      const cutStepElapsedMs = performance.now() - cutStepStartedAt
-      const detectionElapsedMs = detectionMeasurement?.elapsedMs ?? null
-      const totalElapsedMs = (detectionElapsedMs ?? 0) + cutStepElapsedMs
       const stopped = error instanceof StoppedError
       const errorSummary = stopped ? null : userErrorMessage(error)
-      const diagnostics = describeCaughtError(error)
-      upsertPocLog({
-        id: logId,
-        executedAt,
-        fileName: file.name,
-        extension,
-        inputSize: file.size,
-        originalDuration: duration,
-        detectedSilenceCount: intervals.length,
-        removedSilenceCount: summary.selectedCount,
-        estimatedOutputDuration: summary.estimatedDuration,
-        actualOutputDuration: null,
-        outputSize: null,
-        detectionElapsedMs,
-        encodingElapsedMs,
-        totalElapsedMs,
-        averageRealtimeSpeed: realtimeSpeed(duration, totalElapsedMs),
-        result: stopped ? 'stopped' : 'error',
-        stage: 'cut',
-        errorSummary,
-        detectionFfmpegLogs: detectionMeasurement?.ffmpegLogs ?? [],
-        cutFfmpegLogs: [...logs],
-        detectionFfmpegCommand: detectionMeasurement?.ffmpegCommand ?? [],
-        detectionExitCode: detectionMeasurement?.exitCode,
-        cutFfmpegCommand: [...command],
-        cutExitCode: ffmpegExitCode,
-        ...diagnostics,
-        lastFfmpegLog: logs.at(-1) ?? null,
-        runtimeErrors: [...runtimeErrors],
-      })
       if (stopped) {
         setPhase('stopped')
         setStatusMessage('処理を停止しました。検出結果はそのまま残っています。')
@@ -695,7 +435,6 @@ export default function App() {
         console.error(error)
       }
     } finally {
-      endRuntimeErrorCapture()
       cutStartedAtRef.current = null
       etaSamplesRef.current = []
       setRemainingEtaSeconds(null)
@@ -725,19 +464,13 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <header className="site-header">
-        <a className="brand" href="https://sakutio.com/" aria-label="Sakutio ホーム">
-          <span className="brand-mark">S</span>
-          <span>Sakutio</span>
-        </a>
-        <span className="poc-badge">ローカルPoC</span>
-      </header>
+      <SakutioHeader />
 
       <main className="app-main">
         <div className="hero">
           <p className="hero__eyebrow">音声・動画の長い無音をまとめて短く</p>
           <h1>Sakutio 無音カッター</h1>
-          <p>無音部分を自動で探し、内容を確認してから必要な区間だけカットできます。処理はブラウザ内で行うPoCです。</p>
+          <p>無音部分を自動で探し、内容を確認してから必要な区間だけカットできます。ファイルはブラウザ内で処理します。</p>
         </div>
 
         {errorMessage ? <div className="alert alert--error" role="alert">{errorMessage}</div> : null}
@@ -937,7 +670,7 @@ export default function App() {
               remainingTimeText={phase === 'cutting' ? (remainingEtaSeconds === null ? '計算しています…' : formatEta(remainingEtaSeconds)) : undefined}
             />
             {mediaKind === 'video' ? (
-              <p className="technical-note">動画はカット位置の正確さを優先し、PoCでは再エンコードします。長い動画ほど処理時間とメモリ使用量が増えます。</p>
+              <p className="technical-note">動画はカット位置の正確さを優先し、再エンコードします。長い動画ほど処理時間とメモリ使用量が増えます。</p>
             ) : null}
           </StepSection>
 
@@ -949,59 +682,18 @@ export default function App() {
                   <strong>{output.name}</strong>
                   <span>{formatBytes(output.size)} ・ ファイルの長さ {output.duration === null ? '取得できませんでした' : formatDuration(output.duration)}</span>
                 </div>
-                <a className="button button--success" href={output.url} download={output.name}>完成ファイルを保存</a>
+                <button type="button" className="button button--success" onClick={() => void saveOutputFile()}>完成ファイルを保存</button>
               </div>
             ) : <p className="empty-text">手順6の処理が完了すると、ここから保存できます。</p>}
           </StepSection>
         </div>
 
-        <section className="poc-note">
-          <strong>PoCメモ</strong>
-          <p>動画の正確カット検証にはGPL版 <code>@ffmpeg/core</code> を使用しています。公開版もGPLルートで進め、ソースコード・第三者ライセンス・対応するFFmpeg coreのソース情報を公開します。</p>
-        </section>
-
         <nav className="legal-links" aria-label="ライセンス情報">
           <a href="/licenses/">オープンソース / ライセンス</a>
         </nav>
 
-        {POC_LOG_ENABLED ? (
-          <section className="poc-log-section">
-            <details>
-              <summary>PoC検証ログ <span>{pocLogs.length}件</span></summary>
-              <div className="poc-log-section__body">
-                <p className="technical-note">PoC専用です。計測値・ファイル名・処理結果・FFmpegテキストログのみをブラウザセッション内に保持し、メディア本体は保存・外部送信しません。公開版では削除または無効化する前提です。</p>
-                <div className="button-group">
-                  <button type="button" className="button button--secondary button--small" onClick={() => void copyPocLogs()} disabled={pocLogs.length === 0}>ログをコピー</button>
-                  <button type="button" className="button button--ghost button--small" onClick={savePocLogs} disabled={pocLogs.length === 0}>ログをテキスト保存</button>
-                  <button type="button" className="button button--ghost button--small" onClick={clearPocLogs} disabled={pocLogs.length === 0}>ログを消去</button>
-                </div>
-                {pocLogMessage ? <p className="poc-log-message">{pocLogMessage}</p> : null}
-                {pocLogs.length === 0 ? <p className="empty-text">まだ検証ログはありません。</p> : (
-                  <div className="poc-log-list">
-                    {pocLogs.map((entry) => (
-                      <details className="poc-log-entry" key={entry.id}>
-                        <summary>
-                          <span>{new Date(entry.executedAt).toLocaleString('ja-JP', { hour12: false })}</span>
-                          <strong>{entry.fileName}</strong>
-                          <em>{pocResultLabel(entry)}</em>
-                        </summary>
-                        <pre>{formatPocLogEntry(entry, false)}</pre>
-                        {(entry.detectionFfmpegLogs.length > 0 || entry.cutFfmpegLogs.length > 0) ? (
-                          <details className="poc-ffmpeg-log">
-                            <summary>詳細FFmpegログを表示</summary>
-                            <pre>{formatPocLogEntry(entry, true)}</pre>
-                          </details>
-                        ) : null}
-                      </details>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </details>
-          </section>
-        ) : null}
-
       </main>
+      <SakutioFooter />
     </div>
   )
 }
