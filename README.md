@@ -22,7 +22,7 @@ npm run build
 npm run dev
 ```
 
-`npm run dev` / `npm run build` の前に、`@ffmpeg/core` のJS/WASMを `public/ffmpeg-core-gpl/` へ自動コピーします。このディレクトリは大容量のためGit管理対象外です。
+`npm run dev` / `npm run build` の前に、`@ffmpeg/core` のJSを `public/ffmpeg-core-gpl/` へコピーし、WASMはgzip圧縮して同じ場所へ置きます。このディレクトリは大容量のためGit管理対象外です。
 
 ## 対応入力
 

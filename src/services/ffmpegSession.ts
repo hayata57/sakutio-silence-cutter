@@ -70,7 +70,7 @@ export class FFmpegSession {
 
     const base = '/ffmpeg-core-gpl'
     const coreURL = await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript')
-    const wasmURL = await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm')
+    const wasmURL = await toBlobURL(`${base}/ffmpeg-core.wasm.gz`, 'application/wasm')
     await ffmpeg.load({ coreURL, wasmURL })
     if (!this.isCurrentRun(runId)) throw new StoppedError()
   }

@@ -10,7 +10,7 @@
     "prebuild": "npm run prepare:core",
     "build": "tsc -b && vite build",
     "lint": "oxlint src scripts",
-    "test": "vitest run",
+    "test": "vitest run --dir src",
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
     "licenses:generate": "node scripts/generate-third-party-licenses.mjs",
