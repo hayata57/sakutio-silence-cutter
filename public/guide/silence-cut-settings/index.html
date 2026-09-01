@@ -44,6 +44,8 @@
     .threshold-scale__captions{font-size:13px;line-height:1.55;color:var(--sakutio-text-muted)}
     .threshold-scale__captions span:nth-child(2){font-weight:760;color:#447765}
     .threshold-scale__captions .sg-marker{color:var(--sakutio-heading);font-weight:760}
+    .dbfs-note{background:#fff4f6;border-color:#efc5cf}
+    .dbfs-note__title{margin:0 0 14px;font-size:inherit;line-height:1.8;color:var(--sakutio-heading);font-weight:700}
     .wave-figure{margin:26px 0 34px;padding:18px;border:1px solid var(--sakutio-border);border-radius:12px;background:#fff}
     .wave-figure svg{display:block;width:100%;height:auto}.wave-figure__caption{margin:12px 0 0;text-align:center;color:var(--sakutio-text-muted);font-size:14px;line-height:1.65}
     .adjust-map{margin:26px 0 34px;display:grid;grid-template-columns:1fr auto 1fr;align-items:stretch;gap:10px}
@@ -129,8 +131,8 @@
         <h2>dBのしきい値はどう選ぶ？</h2>
         <p>しきい値は、どの程度まで音が小さくなった部分を「無音候補」として扱うかを決める設定です。</p>
 
-        <div class="sg-note sg-note--info">
-          <div class="sg-note__label">0dBは無音ではありません</div>
+        <div class="sg-note sg-note--info dbfs-note">
+          <p class="dbfs-note__title"><span class="sg-marker">0dBは無音ではありません</span></p>
           <p><strong>このページでいうdBは、デジタル音声の音量を表す「dBFS」という基準のことです。</strong></p>
           <p>dBFSは、デジタル音声で扱える最大の音量を <strong>0dBFS</strong> とする音量の基準です。音が小さくなるほど <strong>-20dB → -40dB → -60dB</strong> のように数値が下がっていき、完全な無音は0dBではなく、理論上 <strong>-∞ dBFS</strong> になります。</p>
           <p>この記事では、設定画面や一般的な音声ツールの表記に合わせ、読みやすさのため <strong>dBFSを「dB」と表記します。</strong></p>
