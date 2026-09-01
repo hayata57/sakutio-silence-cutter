@@ -1,0 +1,43 @@
+{
+  "name": "sakutio-silence-cutter",
+  "private": true,
+  "version": "0.1.0-poc",
+  "type": "module",
+  "scripts": {
+    "prepare:core": "node scripts/prepare-ffmpeg-core.mjs",
+    "predev": "npm run prepare:core",
+    "dev": "vite",
+    "prebuild": "npm run prepare:core",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint src scripts",
+    "test": "vitest run",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --pretty false",
+    "licenses:generate": "node scripts/generate-third-party-licenses.mjs",
+    "release:verify": "node scripts/verify-open-source-release.mjs",
+    "release:prepare": "npm run test && npm run lint && npm run typecheck && npm run licenses:generate && npm run build && npm run release:verify",
+    "release:sources": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-gpl-source-bundle.ps1"
+  },
+  "dependencies": {
+    "@ffmpeg/core": "0.12.10",
+    "@ffmpeg/ffmpeg": "0.12.15",
+    "@ffmpeg/util": "0.12.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.4",
+    "oxlint": "1.75.0",
+    "typescript": "6.0.2",
+    "vite": "8.2.0",
+    "vitest": "4.1.10"
+  },
+  "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayata57/sakutio-silence-cutter.git"
+  }
+}

@@ -1,0 +1,21 @@
+# Dependencies / build output
+node_modules/
+dist/
+.vite/
+coverage/
+
+# Generated FFmpeg runtime copied from @ffmpeg/core
+public/ffmpeg-core-gpl/
+
+# Local test / temporary files
+tmp-test-media/
+*.log
+.DS_Store
+
+# Local-only development records (not part of the public source release)
+POC_TECH_NOTES.md
+WORK_PROGRESS.md
+
+# Generated GPL source release artifacts
+release-source-bundle/
+Sakutio_Silence_Cutter_GPL_Source.zip
