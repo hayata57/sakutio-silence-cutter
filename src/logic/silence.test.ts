@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildKeepSegments,
   getPreviewWindow,
+  parseBoundedNumber,
   parseFfmpegDuration,
   parseFfmpegProgressTime,
   parseSilenceDetectLogs,
@@ -61,5 +62,18 @@ describe('silence logic', () => {
   it('caps preview at 30 seconds and shifts inside media bounds', () => {
     expect(getPreviewWindow({ start: 1, end: 3 }, 100, 30)).toEqual({ start: 0, end: 30 })
     expect(getPreviewWindow({ start: 97, end: 99 }, 100, 30)).toEqual({ start: 70, end: 100 })
+  })
+
+  it('parses bounded numbers without keeping empty, NaN, or out-of-range values', () => {
+    expect(parseBoundedNumber('', -80, -10)).toBeNull()
+    expect(parseBoundedNumber('   ', -80, -10)).toBeNull()
+    expect(parseBoundedNumber('-', -80, -10)).toBeNull()
+    expect(parseBoundedNumber('abc', -80, -10)).toBeNull()
+    expect(parseBoundedNumber('-40', -80, -10)).toBe(-40)
+    expect(parseBoundedNumber('-5', -80, -10)).toBe(-10)
+    expect(parseBoundedNumber('-90', -80, -10)).toBe(-80)
+    expect(parseBoundedNumber('0.8', 0.1, 10)).toBe(0.8)
+    expect(parseBoundedNumber('0', 0.1, 10)).toBe(0.1)
+    expect(parseBoundedNumber('12', 0.1, 10)).toBe(10)
   })
 })

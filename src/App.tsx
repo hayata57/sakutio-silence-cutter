@@ -8,6 +8,7 @@ import {
   formatBytes,
   formatDuration,
   getPreviewWindow,
+  parseBoundedNumber,
   parseFfmpegDuration,
   parseFfmpegProgressTime,
   parseSilenceDetectLogs,
@@ -45,6 +46,9 @@ const PRESETS: Record<Exclude<PresetKey, 'custom'>, Pick<DetectionSettings, 'thr
 }
 
 const ACCEPT = '.mp3,.wav,.m4a,.mp4,.mov,audio/mpeg,audio/wav,audio/mp4,video/mp4,video/quicktime'
+const THRESHOLD_DB_RANGE = { min: -80, max: -10 } as const
+const MIN_SILENCE_SECONDS_RANGE = { min: 0.1, max: 10 } as const
+const SETTINGS_GUIDE_URL = 'https://silence-cutter.sakutio.com/guide/silence-cut-settings/'
 
 function phaseLabel(phase: RunPhase): string {
   switch (phase) {
@@ -102,6 +106,8 @@ export default function App() {
   const [output, setOutput] = useState<OutputResult | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [remainingEtaSeconds, setRemainingEtaSeconds] = useState<number | null>(null)
+  const [thresholdDraft, setThresholdDraft] = useState<string | null>(null)
+  const [minSilenceDraft, setMinSilenceDraft] = useState<string | null>(null)
 
   useEffect(() => {
     sessionRef.current = new FFmpegSession()
@@ -197,6 +203,8 @@ export default function App() {
   }
 
   function selectPreset(key: Exclude<PresetKey, 'custom'>): void {
+    setThresholdDraft(null)
+    setMinSilenceDraft(null)
     setPreset(key)
     setSettings((current) => ({ ...current, ...PRESETS[key] }))
     resetAnalysis()
@@ -206,6 +214,31 @@ export default function App() {
     setPreset('custom')
     setSettings((current) => ({ ...current, [field]: value }))
     resetAnalysis()
+  }
+
+  function handleDetailedSettingChange(
+    field: 'thresholdDb' | 'minSilenceSeconds',
+    raw: string,
+    range: { min: number, max: number },
+  ): void {
+    if (field === 'thresholdDb') setThresholdDraft(raw)
+    else setMinSilenceDraft(raw)
+    const parsed = Number(raw)
+    if (Number.isFinite(parsed) && parsed >= range.min && parsed <= range.max && parsed !== settings[field]) {
+      updateDetailedSetting(field, parsed)
+    }
+  }
+
+  function commitDetailedSetting(
+    field: 'thresholdDb' | 'minSilenceSeconds',
+    raw: string,
+    range: { min: number, max: number },
+  ): void {
+    if (field === 'thresholdDb') setThresholdDraft(null)
+    else setMinSilenceDraft(null)
+    const next = parseBoundedNumber(raw, range.min, range.max)
+    if (next === null || next === settings[field]) return
+    updateDetailedSetting(field, next)
   }
 
   function updateRetain(value: number): void {
@@ -537,6 +570,12 @@ export default function App() {
               ))}
             </div>
 
+            <p className="guide-link">
+              <a href={SETTINGS_GUIDE_URL} target="_blank" rel="noopener noreferrer">
+                無音カット設定の目安を見る
+              </a>
+            </p>
+
             <details className="details-panel">
               <summary>詳細設定</summary>
               <div className="details-panel__body">
@@ -544,12 +583,13 @@ export default function App() {
                   <span>判定音量</span>
                   <input
                     type="number"
-                    min={-80}
-                    max={-10}
+                    min={THRESHOLD_DB_RANGE.min}
+                    max={THRESHOLD_DB_RANGE.max}
                     step={1}
-                    value={settings.thresholdDb}
+                    value={thresholdDraft ?? settings.thresholdDb}
                     disabled={!file || busy}
-                    onChange={(event) => updateDetailedSetting('thresholdDb', Number(event.target.value))}
+                    onChange={(event) => handleDetailedSettingChange('thresholdDb', event.target.value, THRESHOLD_DB_RANGE)}
+                    onBlur={(event) => commitDetailedSetting('thresholdDb', event.target.value, THRESHOLD_DB_RANGE)}
                   />
                   <span className="field-unit">dB</span>
                 </label>
@@ -557,12 +597,13 @@ export default function App() {
                   <span>最低無音時間</span>
                   <input
                     type="number"
-                    min={0.1}
-                    max={10}
+                    min={MIN_SILENCE_SECONDS_RANGE.min}
+                    max={MIN_SILENCE_SECONDS_RANGE.max}
                     step={0.1}
-                    value={settings.minSilenceSeconds}
+                    value={minSilenceDraft ?? settings.minSilenceSeconds}
                     disabled={!file || busy}
-                    onChange={(event) => updateDetailedSetting('minSilenceSeconds', Number(event.target.value))}
+                    onChange={(event) => handleDetailedSettingChange('minSilenceSeconds', event.target.value, MIN_SILENCE_SECONDS_RANGE)}
+                    onBlur={(event) => commitDetailedSetting('minSilenceSeconds', event.target.value, MIN_SILENCE_SECONDS_RANGE)}
                   />
                   <span className="field-unit">秒</span>
                 </label>
@@ -609,7 +650,7 @@ export default function App() {
             ) : <p className="empty-text">手順3で無音部分を調べると結果が表示されます。</p>}
           </StepSection>
 
-          <StepSection number={5} title="無音区間を確認・選択" description="元メディア1個・プレイヤー1個を使い回して確認します。" disabled={!detected || intervals.length === 0}>
+          <StepSection number={5} title="無音区間を確認・選択" description="各無音区間の前後を再生し、カットする区間を確認できます。" disabled={!detected || intervals.length === 0}>
             {detected && intervals.length > 0 ? (
               <>
                 <div className="preview-toolbar">

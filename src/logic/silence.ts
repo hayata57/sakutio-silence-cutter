@@ -6,6 +6,14 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
+export function parseBoundedNumber(raw: string, min: number, max: number): number | null {
+  const trimmed = raw.trim()
+  if (trimmed === '') return null
+  const value = Number(trimmed)
+  if (!Number.isFinite(value)) return null
+  return clamp(value, min, max)
+}
+
 export function roundTime(value: number): number {
   return Math.round(value * 1000) / 1000
 }
