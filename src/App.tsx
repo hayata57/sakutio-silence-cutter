@@ -63,8 +63,8 @@ function userErrorMessage(error: unknown): string {
     if (/matches no streams|stream map.*no streams|does not contain any stream/i.test(error.message)) {
       return '音声トラックが見つかりませんでした。音声を含むファイルを選んでください。'
     }
-    if (/memory|out of bounds|OOM/i.test(error.message)) {
-      return 'ブラウザのメモリが不足した可能性があります。短いファイルで再度お試しください。'
+    if (/out of bounds|out of memory|\bOOM\b|cannot allocate memory/i.test(error.message)) {
+      return '処理を完了できませんでした。ファイルが大きい、またはブラウザの負荷が高い可能性があります。短いファイルで再度お試しください。'
     }
   }
   return '処理中にエラーが発生しました。設定やファイルを確認して、もう一度お試しください。'
@@ -162,6 +162,7 @@ export default function App() {
   async function applyFile(nextFile: File): Promise<void> {
     const kind = classifyMedia(nextFile)
     if (!kind) {
+      setStatusMessage('')
       setErrorMessage('対応形式は MP3 / WAV / M4A / MP4 / MOV です。')
       return
     }
@@ -286,7 +287,9 @@ export default function App() {
     setRemainingEtaSeconds(null)
     setPhase('stopped')
     setProgress(0)
-    setStatusMessage('処理を停止しました。設定やファイルはそのまま再実行できます。')
+    setStatusMessage(detected
+      ? '処理を停止しました。検出結果はそのまま残っています。'
+      : '処理を停止しました。設定やファイルはそのまま再実行できます。')
   }
 
   function setAllSelected(selected: boolean): void {
@@ -489,7 +492,14 @@ export default function App() {
                 handleInputFile(event.dataTransfer.files)
               }}
             >
-              <input type="file" accept={ACCEPT} onChange={(event) => handleInputFile(event.target.files)} />
+              <input
+                type="file"
+                accept={ACCEPT}
+                onChange={(event) => {
+                  handleInputFile(event.target.files)
+                  event.currentTarget.value = ''
+                }}
+              />
               <span className="drop-zone__icon" aria-hidden="true">＋</span>
               <strong>ファイルを選択</strong>
               <span>またはここへドラッグ＆ドロップ</span>
@@ -584,7 +594,7 @@ export default function App() {
               </button>
               <span className="action-note">設定: {settings.thresholdDb} dB / {settings.minSilenceSeconds.toFixed(1)}秒</span>
             </div>
-            <ProgressPanel label={phaseLabel(phase)} progress={progress} active={busy} onStop={stopProcessing} />
+            <ProgressPanel label={phaseLabel(phase)} progress={progress} active={busy && !detected} onStop={stopProcessing} />
           </StepSection>
 
           <StepSection number={4} title="検出結果を確認" description="選択状態を変えると目安の長さもすぐ更新されます。" disabled={!detected}>
@@ -665,7 +675,7 @@ export default function App() {
             <ProgressPanel
               label={phaseLabel(phase)}
               progress={progress}
-              active={busy}
+              active={busy && detected}
               onStop={stopProcessing}
               remainingTimeText={phase === 'cutting' ? (remainingEtaSeconds === null ? '計算しています…' : formatEta(remainingEtaSeconds)) : undefined}
             />
