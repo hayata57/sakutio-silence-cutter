@@ -39,8 +39,10 @@ The exact upstream build inputs recorded from that release are listed in
 
 ## Important distribution note
 
-Sakutio redistributes `ffmpeg-core.js` and `ffmpeg-core.wasm` from the official
-`@ffmpeg/core@0.12.10` npm package. For a public release, do not rely only on an
+Sakutio redistributes `ffmpeg-core.js` and a gzip-precompressed
+`ffmpeg-core.wasm.gz` from the official `@ffmpeg/core@0.12.10` npm package.
+After the app gunzips it in the browser the WebAssembly bytes are identical to the
+unmodified `ffmpeg-core.wasm` in that package. For a public release, do not rely only on an
 upstream web link disappearing in the future. Run the GPL source bundle step
 and retain/upload the resulting source archive together with the corresponding
 Sakutio release. See `OPEN_SOURCE_RELEASE.md` and `SOURCE.md`.

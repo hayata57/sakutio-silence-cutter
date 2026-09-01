@@ -18,9 +18,15 @@ license documents, and the release tag/commit.
 The browser receives these files at runtime:
 
 - `/ffmpeg-core-gpl/ffmpeg-core.js`
-- `/ffmpeg-core-gpl/ffmpeg-core.wasm`
+- `/ffmpeg-core-gpl/ffmpeg-core.wasm.gz`
 
-They are copied without Sakutio modification from the installed npm package:
+`ffmpeg-core.wasm.gz` is the unmodified `@ffmpeg/core@0.12.10` WebAssembly
+binary, gzip-precompressed so the file stays under Cloudflare Pages' 25 MiB
+limit. The app fetches this file as gzip and decompresses it in the browser
+with `DecompressionStream`; the resulting bytes match the npm package
+`ffmpeg-core.wasm` exactly.
+
+They are produced from the installed npm package without modifying the WASM:
 
 - package: `@ffmpeg/core`
 - version: `0.12.10`

@@ -9,7 +9,7 @@
 
 - アプリ本体: `GPL-2.0-or-later`。
 - 公開ソース候補: `https://github.com/hayata57/sakutio-silence-cutter`。
-- FFmpeg runtime core: npm `@ffmpeg/core@0.12.10` を改変せず配信。
+- FFmpeg runtime core: npm `@ffmpeg/core@0.12.10` を改変せず配信。Pagesの25MiB制限のため WASM は gzip 事前圧縮し、HTTP Content-Encodingには依存せずアプリ側で展開する。展開後バイトは公式coreと一致させる。
 - coreのnpm declared license: `GPL-2.0-or-later`。
 - 対応するupstream release commit: `71aa99d37c02a7b4c435275ca9ef50e612f6efa1`。
 - WebMは初期公開対象外。ただし公式coreバイナリ自体に含まれる第三者ライブラリのソース/ライセンス記録は省略しない。

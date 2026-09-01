@@ -1,6 +1,15 @@
 import { FFmpeg, FFFSType } from '@ffmpeg/ffmpeg'
 import { fetchFile, toBlobURL } from '@ffmpeg/util'
 
+async function toGunzippedWasmBlobURL(url: string): Promise<string> {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.status}`)
+  if (!response.body) throw new Error(`Failed to fetch ${url}: empty body`)
+  const decompressed = response.body.pipeThrough(new DecompressionStream('gzip'))
+  const bytes = await new Response(decompressed).arrayBuffer()
+  return URL.createObjectURL(new Blob([bytes], { type: 'application/wasm' }))
+}
+
 export class StoppedError extends Error {
   constructor() {
     super('処理を停止しました。')
@@ -70,7 +79,7 @@ export class FFmpegSession {
 
     const base = '/ffmpeg-core-gpl'
     const coreURL = await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript')
-    const wasmURL = await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm')
+    const wasmURL = await toGunzippedWasmBlobURL(`${base}/ffmpeg-core.wasm.gz`)
     await ffmpeg.load({ coreURL, wasmURL })
     if (!this.isCurrentRun(runId)) throw new StoppedError()
   }
