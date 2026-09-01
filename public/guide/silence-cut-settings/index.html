@@ -85,6 +85,7 @@
           <h2 id="summary-title" class="sg-summary__title">この記事でわかること</h2>
           <ul>
             <li>-50dB・-40dB・-35dBの違い</li>
+            <li>0dBが無音ではない理由とdBFSの考え方</li>
             <li>無音時間を長く・短くするとどう変わるか</li>
             <li>カット前後に少し無音を残す理由</li>
             <li>迷ったときに最初に試しやすい設定</li>
@@ -127,6 +128,14 @@
       <section class="sg-section sg-prose" id="threshold">
         <h2>dBのしきい値はどう選ぶ？</h2>
         <p>しきい値は、どの程度まで音が小さくなった部分を「無音候補」として扱うかを決める設定です。</p>
+
+        <div class="sg-note sg-note--info">
+          <div class="sg-note__label">0dBは無音ではありません</div>
+          <p><strong>このページでいうdBは、デジタル音声の音量を表す「dBFS」という基準のことです。</strong></p>
+          <p>dBFSは、デジタル音声で扱える最大の音量を <strong>0dBFS</strong> とする音量の基準です。音が小さくなるほど <strong>-20dB → -40dB → -60dB</strong> のように数値が下がっていき、完全な無音は0dBではなく、理論上 <strong>-∞ dBFS</strong> になります。</p>
+          <p>この記事では、設定画面や一般的な音声ツールの表記に合わせ、読みやすさのため <strong>dBFSを「dB」と表記します。</strong></p>
+        </div>
+
         <p>Sakutio 無音カッターでは、最初から次の3段階を用意しています。</p>
 
         <div class="threshold-visual" aria-label="控えめから強めまでのしきい値の違い">
@@ -147,21 +156,22 @@
             </tbody>
           </table>
         </div>
-        <p class="settings-note">※ 同じ空調音や環境音でも、マイク・距離・録音音量によって記録される音量は変わります。この例はdB値との固定的な対応ではなく、設定を試すときの目安です。また、ここでのdBは録音データ上のしきい値で、部屋の騒音計などで測る音量とは同じ意味ではありません。</p>
+        <p class="settings-note">※ 同じ空調音や環境音でも、マイク・距離・録音音量によって記録される音量は変わります。この例はdB値との固定的な対応ではなく、設定を試すときの目安です。また、ここで扱うdBは、部屋の騒音計などで測る音量とは異なるデジタル音声上の値です。</p>
 
         <div class="wave-figure" aria-label="しきい値と最低無音時間のイメージ図">
-          <svg viewBox="0 0 700 260" role="img" aria-labelledby="wave-title wave-desc">
+          <svg viewBox="0 0 700 280" role="img" aria-labelledby="wave-title wave-desc">
             <title id="wave-title">しきい値と最低無音時間のイメージ</title>
             <desc id="wave-desc">声の音量が-40dBのしきい値より小さい状態で0.8秒以上続くと、無音候補として検出されるイメージです。</desc>
-            <rect x="0" y="0" width="700" height="260" rx="10" fill="#f8fafc" />
-            <rect x="255" y="126" width="210" height="72" rx="8" fill="#eaf4ef" />
+            <rect x="0" y="0" width="700" height="280" rx="10" fill="#f8fafc" />
+            <rect x="255" y="126" width="210" height="82" rx="8" fill="#eaf4ef" />
 
-            <line x1="62" y1="42" x2="62" y2="190" stroke="#9aa8b8" stroke-width="1.5" />
-            <text x="22" y="31" fill="#374151" font-size="15" font-weight="800">dB</text>
+            <line x1="62" y1="42" x2="62" y2="205" stroke="#9aa8b8" stroke-width="1.5" />
+            <text x="15" y="31" fill="#374151" font-size="15" font-weight="800">dB(FS)</text>
             <line x1="57" y1="44" x2="67" y2="44" stroke="#9aa8b8" stroke-width="1.5" /><text x="31" y="49" fill="#64748b" font-size="12">0</text>
             <line x1="57" y1="84" x2="67" y2="84" stroke="#9aa8b8" stroke-width="1.5" /><text x="21" y="89" fill="#64748b" font-size="12">-20</text>
             <line x1="57" y1="126" x2="67" y2="126" stroke="#4f7fcf" stroke-width="2" /><text x="21" y="131" fill="#315f8f" font-size="12" font-weight="800">-40</text>
             <line x1="57" y1="168" x2="67" y2="168" stroke="#9aa8b8" stroke-width="1.5" /><text x="21" y="173" fill="#64748b" font-size="12">-60</text>
+            <line x1="57" y1="202" x2="67" y2="202" stroke="#9aa8b8" stroke-width="1.5" /><text x="19" y="207" fill="#64748b" font-size="12">-∞</text>
 
             <line x1="62" y1="126" x2="655" y2="126" stroke="#4f7fcf" stroke-width="2" stroke-dasharray="7 6" />
             <text x="78" y="116" fill="#315f8f" font-size="15" font-weight="800">-40dB（しきい値）</text>
@@ -169,11 +179,11 @@
             <text x="125" y="42" fill="#374151" font-size="15" font-weight="700">声あり</text>
             <text x="546" y="42" fill="#374151" font-size="15" font-weight="700">声あり</text>
             <text x="308" y="151" fill="#315f51" font-size="15" font-weight="800">しきい値より小さい</text>
-            <text x="331" y="178" fill="#315f51" font-size="14">無音候補の区間</text>
-            <line x1="255" y1="218" x2="465" y2="218" stroke="#497963" stroke-width="2" />
-            <line x1="255" y1="210" x2="255" y2="226" stroke="#497963" stroke-width="2" />
-            <line x1="465" y1="210" x2="465" y2="226" stroke="#497963" stroke-width="2" />
-            <text x="320" y="243" fill="#315f51" font-size="15" font-weight="800">0.8秒以上</text>
+            <text x="331" y="199" fill="#315f51" font-size="14">無音候補の区間</text>
+            <line x1="255" y1="232" x2="465" y2="232" stroke="#497963" stroke-width="2" />
+            <line x1="255" y1="224" x2="255" y2="240" stroke="#497963" stroke-width="2" />
+            <line x1="465" y1="224" x2="465" y2="240" stroke="#497963" stroke-width="2" />
+            <text x="320" y="258" fill="#315f51" font-size="15" font-weight="800">0.8秒以上</text>
           </svg>
           <p class="wave-figure__caption">標準設定なら、音量が-40dB以下の状態が0.8秒以上続いた区間を無音候補として探すイメージです。</p>
         </div>
@@ -238,6 +248,7 @@
 
       <section class="sg-section sg-prose" id="faq">
         <h2>よくある質問</h2>
+        <h3>0dBは無音ではないのですか？</h3><p>このページで扱うデジタル音声のdBでは、<strong>0dBFSは最大音量側の基準</strong>です。音が小さくなるほどマイナス方向へ下がり、完全な無音は理論上<strong>-∞ dBFS</strong>になります。</p>
         <h3>無音カットは何dBがおすすめですか？</h3><p>一律の正解はありませんが、Sakutio 無音カッターではまず<strong>-40dB / 0.8秒</strong>を標準として試せます。検出されない場合は強め、切れすぎる場合は控えめ方向へ調整します。</p>
         <h3>-50dBと-35dBではどちらが強いですか？</h3><p>-35dBのほうが強く無音の判定をします。-50dBよりも大きな音でも無音候補に入りやすくなります。</p>
         <h3>無音時間は短いほどいいですか？</h3><p>必ずしもそうではありません。短くすると細かな間まで検出できますが、話し方がせわしなくなることがあります。</p>
