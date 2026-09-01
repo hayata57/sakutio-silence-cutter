@@ -22,7 +22,8 @@ The browser receives these files at runtime:
 
 `ffmpeg-core.wasm.gz` is the unmodified `@ffmpeg/core@0.12.10` WebAssembly
 binary, gzip-precompressed so the file stays under Cloudflare Pages' 25 MiB
-limit. After HTTP gzip decompression, the bytes match the npm package
+limit. The app fetches this file as gzip and decompresses it in the browser
+with `DecompressionStream`; the resulting bytes match the npm package
 `ffmpeg-core.wasm` exactly.
 
 They are produced from the installed npm package without modifying the WASM:

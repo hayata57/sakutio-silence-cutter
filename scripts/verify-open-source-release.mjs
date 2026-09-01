@@ -83,7 +83,8 @@ const headersPath = path.join(dist, '_headers')
 if (!(await exists(headersPath))) fail('Built release is missing: dist/_headers')
 const headers = await readFile(headersPath, 'utf8')
 if (!headers.includes('/ffmpeg-core-gpl/ffmpeg-core.wasm.gz')) fail('dist/_headers does not cover ffmpeg-core.wasm.gz')
-if (!headers.includes('Content-Encoding: gzip')) fail('dist/_headers must set Content-Encoding: gzip for the precompressed WASM.')
+if (!headers.includes('Content-Type: application/gzip')) fail('dist/_headers must set Content-Type: application/gzip for ffmpeg-core.wasm.gz.')
+if (/content-encoding:\s*gzip/i.test(headers)) fail('dist/_headers must not set Content-Encoding: gzip; the app gunzips the WASM itself.')
 
 const pagesFileLimit = 25 * 1024 * 1024
 const rawWasmInDist = path.join(dist, 'ffmpeg-core-gpl', 'ffmpeg-core.wasm')
