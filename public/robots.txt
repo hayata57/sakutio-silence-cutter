@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://silence-cutter.sakutio.com/sitemap.xml

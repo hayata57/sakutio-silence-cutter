@@ -30,6 +30,7 @@ export type CutSummary = {
 }
 
 export type OutputResult = {
+  blob: Blob
   url: string
   name: string
   size: number

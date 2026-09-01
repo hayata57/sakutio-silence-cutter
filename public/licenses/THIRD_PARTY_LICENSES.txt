@@ -1,6 +1,6 @@
 Sakutio Silence Cutter - Third-party license notices
 Generated from the installed production dependency graph.
-Generated at: 2026-08-31T13:17:41.423Z
+Generated at: 2026-09-01T03:42:10.658Z
 
 Project license: GPL-2.0-or-later
 Project source: https://github.com/hayata57/sakutio-silence-cutter

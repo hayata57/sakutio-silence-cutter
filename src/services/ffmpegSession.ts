@@ -9,8 +9,6 @@ export class StoppedError extends Error {
 }
 
 export class FFmpegExecError extends Error {
-  readonly workerError: string | null
-
   constructor(error: unknown) {
     const message = error instanceof Error
       ? error.message
@@ -19,11 +17,6 @@ export class FFmpegExecError extends Error {
         : String(error)
     super(message || 'FFmpeg worker execution failed.')
     this.name = 'FFmpegExecError'
-    this.workerError = error instanceof Error
-      ? `${error.name}: ${error.message}`
-      : typeof error === 'string'
-        ? error
-        : String(error)
     if (error instanceof Error && error.stack) this.stack = error.stack
   }
 }

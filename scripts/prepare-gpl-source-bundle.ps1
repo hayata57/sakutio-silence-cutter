@@ -113,7 +113,7 @@ foreach ($LocalOnly in @("POC_TECH_NOTES.md", "WORK_PROGRESS.md")) {
     throw "Local-only file was unexpectedly copied into the public source bundle: $LocalOnly"
   }
 }
-Write-Host "[source] Local-only PoC/operations notes excluded from public source bundle"
+Write-Host "[source] Local-only development records excluded from public source bundle"
 
 Write-Host "[source] Creating source ZIP"
 Compress-Archive -Path (Join-Path $Work "*") -DestinationPath $ZipPath -CompressionLevel Optimal

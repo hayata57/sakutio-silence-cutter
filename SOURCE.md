@@ -42,7 +42,7 @@ npm run release:sources
 The script creates a source bundle containing:
 
 1. The current Sakutio application source required for the public release
-   (excluding generated binaries, caches, and local-only PoC/operations notes).
+   (excluding generated binaries, caches, and local-only development records).
 2. The exact ffmpeg.wasm release commit used for `@ffmpeg/core@0.12.10`.
 3. The third-party source repositories referenced by that upstream Dockerfile,
    checked out at the recorded tag/ref or pinned commit.
