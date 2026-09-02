@@ -1,4 +1,18 @@
 .app-shell { min-height: 100vh; }
+/* Reserve the measured final header height before sakutio-global-header.js upgrades the host. */
+sakutio-global-header {
+  display: block;
+  min-height: calc(3.75rem + 1px);
+}
+@media (max-width: 542px) {
+  sakutio-global-header { min-height: 90.5px; }
+}
+@media (max-width: 480px) {
+  sakutio-global-header { min-height: 70.2px; }
+}
+@media (max-width: 391px) {
+  sakutio-global-header { min-height: 103px; }
+}
 .sakutio-header-fallback, .sakutio-footer-fallback {
   display: flex;
   align-items: center;
@@ -139,8 +153,11 @@
   .output-card .button { grid-column: 1 / -1; width: 100%; }
 }
 
+@media (max-width: 391px) {
+  .sakutio-header-fallback { align-items: flex-start; flex-direction: column; padding: 10px 14px; }
+}
 @media (max-width: 480px) {
-  .sakutio-header-fallback, .sakutio-footer-fallback { align-items: flex-start; flex-direction: column; padding: 10px 14px; }
+  .sakutio-footer-fallback { align-items: flex-start; flex-direction: column; padding: 10px 14px; }
   .app-main { width: calc(100% - 14px); }
   .hero h1 { font-size: 29px; }
   .step-card__body { padding-left: 14px; }
