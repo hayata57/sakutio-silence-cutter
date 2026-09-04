@@ -31,6 +31,7 @@
     .guide-table tbody th{color:var(--sakutio-heading);font-weight:760;white-space:nowrap}
     .guide-table tr:last-child th,.guide-table tr:last-child td{border-bottom:0}
     .process-flow{margin:22px 0 28px;padding:16px 18px;border:1px solid var(--sakutio-border);border-radius:12px;background:var(--sakutio-surface-soft);color:var(--sakutio-heading);font-weight:760;line-height:1.8}
+    .use-case-list-box ul{margin-bottom:0}
     @media (max-width:600px){
       .guide-table-wrap{border:0;background:transparent;overflow:visible}
       .guide-table{display:block}
@@ -123,7 +124,7 @@
         <p>初めて使う場合は、まず「標準」から試すと分かりやすいです。</p>
         <p>今回の標準設定は、-40 dB、最低無音時間 0.8秒、カット前後に残す無音（合計）0.2秒です。</p>
         <p>dBや最低無音時間の詳しい意味は、ここでは深掘りしません。</p>
-        <p><a href="https://silence-cutter.sakutio.com/guide/silence-cut-settings/">無音カットの設定は何dB？しきい値・無音時間・余白の目安</a></p>
+        <p>dBなどの詳しい説明はこちら → <a href="https://silence-cutter.sakutio.com/guide/silence-cut-settings/">無音カットの設定は何dB？しきい値・無音時間・余白の目安</a></p>
         <figure class="sg-figure sg-figure--wide">
           <button class="sg-figure__zoom" type="button" aria-label="無音判定の標準設定マイナス40dB・0.8秒を選択した画面を拡大表示">
             <img src="./images/img-02-standard-setting.jpg" width="1348" height="926" loading="lazy" alt="無音判定の標準設定マイナス40dB・0.8秒を選択した画面" />
@@ -264,13 +265,13 @@
         <p>無音を多く消せば、必ず聞きやすくなるわけではありません。</p>
         <p>会話では短い「間」が自然さにつながることもあります。</p>
         <p>特に次のような場合は、結果を確認してから調整します。</p>
-        <h3>短い間までたくさん検出される</h3>
+        <h3><span class="sg-marker">短い間までたくさん検出された場合</span></h3>
         <p>「強め」では短い静けさも拾いやすくなります。</p>
         <p>会話の間まで多く候補になる場合は「標準」や「控えめ」を試します。</p>
-        <h3>無音なのに検出されない</h3>
+        <h3><span class="sg-marker">無音なのに検出されない場合</span></h3>
         <p>エアコンやマイクのノイズなどがあると、人には静かに聞こえても音量がしきい値を下回らない場合があります。</p>
         <p>その場合は「強め」や詳細設定を試します。</p>
-        <h3>会話が急につながって聞こえる</h3>
+        <h3><span class="sg-marker">会話が急に繋がって聞こえた場合</span></h3>
         <p>前後の無音を完全に0秒へ近づけると、話し方がせわしなく感じられる場合があります。</p>
         <p>最初は推奨の0.2秒を残して確認すると分かりやすいです。</p>
       </section>
@@ -287,13 +288,15 @@
       <section class="sg-section sg-prose" id="use-cases">
         <h2>どんな動画・音声に向いている？</h2>
         <p>Sakutio 無音カッターは、長い沈黙を探す手間を減らしたいファイルに向いています。</p>
-        <ul>
-          <li>解説動画や講義動画</li>
-          <li>画面収録で操作待ちの時間がある動画</li>
-          <li>会議や講義の録音</li>
-          <li>長い間が何度も入る音声</li>
-          <li>Vlogなどで話していない部分を短くしたい場合</li>
-        </ul>
+        <div class="sg-note sg-note--info use-case-list-box">
+          <ul>
+            <li>解説動画や講義動画</li>
+            <li>画面収録で操作待ちの時間がある動画</li>
+            <li>会議や講義の録音</li>
+            <li>長い間が何度も入る音声</li>
+            <li>Vlogなどで話していない部分を短くしたい場合</li>
+          </ul>
+        </div>
         <p>一方、音楽や演出上の「間」など、静かな部分そのものに意味がある素材では、検出結果をそのまますべて削除せず、確認再生してから選ぶことが大切です。</p>
       </section>
 
@@ -323,7 +326,7 @@
         <h2>まとめ</h2>
         <p>長い動画や音声から無音部分を1か所ずつ探して削除するのは、ファイルが長くなるほど手間がかかります。</p>
         <p>Sakutio 無音カッターなら、次の流れで処理できます。</p>
-        <p class="process-flow">無音候補を自動検出 → 前後を確認 → 削除する区間を選択 → まとめてカット → 完成ファイルを保存</p>
+        <p class="process-flow"><span class="sg-marker">無音候補を自動検出 → 前後を確認 → 削除する区間を選択 → まとめてカット → 完成ファイルを保存</span></p>
         <p>今回の実測では、29.0秒のMP3から3件の無音区間を検出し、標準設定で23.6秒まで5.4秒短くできました。</p>
         <p>まずは標準設定で無音部分を調べ、検出結果を確認してみてください。</p>
       </section>
