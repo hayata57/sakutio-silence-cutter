@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>動画・音声の無音部分を自動でカットする方法｜無料・ブラウザ完結</title>
+  <meta name="description" content="動画・音声の長い無音部分を自動検出し、内容を確認してからまとめてカットする方法を解説します。Sakutio 無音カッターで29秒のMP3を実際に処理し、3区間を検出して23.6秒へ短縮した例とともに、ファイル選択から保存まで紹介します。" />
+  <link rel="canonical" href="https://silence-cutter.sakutio.com/guide/auto-silence-cut/" />
+  <meta property="og:type" content="article" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta property="og:title" content="動画・音声の無音部分を自動でカットする方法｜無料・ブラウザ完結" />
+  <meta property="og:description" content="動画・音声の長い無音部分を自動検出し、内容を確認してからまとめてカットする方法を解説します。Sakutio 無音カッターで29秒のMP3を実際に処理し、3区間を検出して23.6秒へ短縮した例とともに、ファイル選択から保存まで紹介します。" />
+  <meta property="og:url" content="https://silence-cutter.sakutio.com/guide/auto-silence-cut/" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="stylesheet" href="https://sakutio.com/shared/sakutio-brand-v1.css" />
+  <link rel="stylesheet" href="https://sakutio.com/shared/sakutio-guide-v1.css" />
+  <script defer src="https://sakutio.com/shared/sakutio-global-header.js"></script>
+  <script defer src="https://sakutio.com/shared/sakutio-global-footer.js"></script>
+  <script defer src="https://sakutio.com/shared/sakutio-guide-v1.js"></script>
+  <style>
+    sakutio-global-header{display:block;min-height:calc(3.75rem + 1px)}
+    @media (max-width:542px){sakutio-global-header{min-height:90.5px}}
+    @media (max-width:480px){sakutio-global-header{min-height:70.2px}}
+    @media (max-width:391px){sakutio-global-header{min-height:103px}}
+    .sg-cta--early{justify-content:center}
+    .guide-table-wrap{margin:26px 0 34px;overflow:hidden;border:1px solid var(--sakutio-border);border-radius:var(--sakutio-radius-md);background:var(--sakutio-raised)}
+    .guide-table{width:100%;border-collapse:collapse;font-size:14px;line-height:1.6}
+    .guide-table th,.guide-table td{padding:11px 13px;border-bottom:1px solid var(--sakutio-border);text-align:left;vertical-align:top;overflow-wrap:anywhere}
+    .guide-table thead th{background:#eef3f8;color:var(--sakutio-heading);font-weight:800}
+    .guide-table tbody th{color:var(--sakutio-heading);font-weight:760;white-space:nowrap}
+    .guide-table tr:last-child th,.guide-table tr:last-child td{border-bottom:0}
+    .process-flow{margin:22px 0 28px;padding:16px 18px;border:1px solid var(--sakutio-border);border-radius:12px;background:var(--sakutio-surface-soft);color:var(--sakutio-heading);font-weight:760;line-height:1.8}
+    .use-case-list-box ul{margin-bottom:0}
+    @media (max-width:600px){
+      .guide-table-wrap{border:0;background:transparent;overflow:visible}
+      .guide-table{display:block}
+      .guide-table thead{display:none}
+      .guide-table tbody{display:grid;gap:12px}
+      .guide-table tr{display:block;border:1px solid var(--sakutio-border);border-radius:10px;overflow:hidden;background:var(--sakutio-raised)}
+      .guide-table tbody th{display:block;padding:11px 13px;border:0;border-bottom:1px solid var(--sakutio-border);white-space:normal}
+      .guide-table td{display:grid;grid-template-columns:7.6em minmax(0,1fr);gap:10px;padding:9px 13px;border:0;border-bottom:1px solid var(--sakutio-border)}
+      .guide-table td::before{content:attr(data-label);color:var(--sakutio-heading);font-weight:760}
+      .guide-table td:last-child{border-bottom:0}
+    }
+  </style>
+</head>
+<body>
+<div class="sg-guide">
+  <sakutio-global-header><div class="sakutio-header-fallback"><a href="https://sakutio.com/">Sakutio</a></div></sakutio-global-header>
+  <header class="sg-tool-band"><div class="sg-tool-band__inner"><a class="sg-tool-band__name" href="https://silence-cutter.sakutio.com/">Sakutio 無音カッター</a></div></header>
+  <main class="sg-page">
+    <article class="sg-article">
+      <nav class="sg-breadcrumb" aria-label="パンくず"><a href="https://sakutio.com/">Sakutio</a><span aria-hidden="true"> › </span><a href="https://silence-cutter.sakutio.com/">無音カッター</a><span aria-hidden="true"> › </span><a href="https://sakutio.com/guides/">ガイド</a></nav>
+
+      <header class="sg-header sg-prose">
+        <h1><span class="sg-heading-marker">動画・音声の無音部分を自動でカットする方法｜無料・ブラウザ完結</span></h1>
+        <p class="sg-lead">動画や音声の中にある長い無音部分を、1か所ずつ探して手作業でカットするのは意外と時間がかかります。</p>
+        <p>解説動画や画面収録、会議・講義の録音などでは、話し始めるまでの待ち時間や、途中の長い沈黙が何度も入ることがあります。</p>
+        <p>Sakutio 無音カッターでは、こうした静かな区間を音量から自動で検出し、内容を確認してから必要な区間だけまとめてカットできます。</p>
+        <p>検出しただけではファイルはカットされません。「ここは残したい」という区間があれば、削除対象から外してから処理できます。</p>
+        <p>この記事では、実際に29秒のテスト用MP3を使い、ファイル追加から完成ファイルの保存まで順番に紹介します。動画でも基本的な操作手順は同じです。</p>
+        <p>選択した音声・動画ファイルは、無音カットのためにSakutioサーバーへアップロードせず、ブラウザ内で処理します。</p>
+      </header>
+
+      <div class="sg-flow sg-prose">
+        <section class="sg-summary" aria-labelledby="summary-title">
+          <h2 id="summary-title" class="sg-summary__title">この記事でわかること</h2>
+          <ul>
+            <li>動画・音声の無音部分を自動で検出する方法</li>
+            <li>検出した区間を確認してからカットする方法</li>
+            <li>最初に試しやすい設定</li>
+            <li>実際に何秒短くなったか</li>
+            <li>不自然なカットを防ぐポイント</li>
+            <li>完成ファイルを保存するまでの流れ</li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="sg-cta sg-cta--secondary sg-cta--early">
+        <a class="sg-button sg-button--primary" href="https://silence-cutter.sakutio.com/">動画・音声の無音部分をカットしてみる</a>
+      </div>
+
+      <details class="sg-toc" open>
+        <summary>目次</summary>
+        <ol class="sg-toc__list">
+          <li class="sg-toc__item"><a class="sg-toc__link" href="#auto-detect">無音部分は自動で検出して、確認してからまとめてカットできる</a></li>
+          <li class="sg-toc__item"><a class="sg-toc__link" href="#how-to">実際に無音部分をカットしてみる</a></li>
+          <li class="sg-toc__item"><a class="sg-toc__link" href="#results">実際に何秒短くなった？</a></li>
+          <li class="sg-toc__item"><a class="sg-toc__link" href="#unnatural">無音カットが不自然になる主な原因</a></li>
+          <li class="sg-toc__item"><a class="sg-toc__link" href="#settings-differ">おすすめ設定は動画・音声によって違う</a></li>
+          <li class="sg-toc__item"><a class="sg-toc__link" href="#use-cases">どんな動画・音声に向いている？</a></li>
+          <li class="sg-toc__item"><a class="sg-toc__link" href="#faq">よくある質問</a></li>
+          <li class="sg-toc__item"><a class="sg-toc__link" href="#guide-summary">まとめ</a></li>
+        </ol>
+      </details>
+
+      <section class="sg-section sg-prose" id="auto-detect">
+        <h2>無音部分は自動で検出して、確認してからまとめてカットできる</h2>
+        <p>Sakutio 無音カッターは、ファイルの中から設定した条件に当てはまる静かな区間を自動で探します。</p>
+        <p>ただし、検出した瞬間にすべてを削除するわけではありません。</p>
+        <p>まず無音候補を一覧で表示し、各区間の前後を確認再生できます。会話の区切りなど、残しておきたい「間」があれば削除対象から外せます。</p>
+        <p>そのため、次の流れで処理できます。</p>
+        <p class="process-flow">自動検出 → 内容を確認 → 削除する区間を選択 → まとめてカット</p>
+      </section>
+
+      <section class="sg-section sg-prose" id="how-to">
+        <h2>実際に無音部分をカットしてみる</h2>
+        <p>この例では、29.0秒のテスト用MP3を使います。</p>
+        <p>動画・音声のどちらでも操作の流れは同じで、現在は MP3 / WAV / M4A / MP4 / MOV に対応しています。</p>
+
+        <h3>1. ファイルを追加する</h3>
+        <p>「ファイルを選択」から編集したいファイルを追加します。PCではドラッグ＆ドロップでも追加できます。</p>
+        <p>今回使用する <code>silence-cut-sample.mp3</code> は29.0秒、681.5KBです。</p>
+        <figure class="sg-figure sg-figure--wide">
+          <button class="sg-figure__zoom" type="button" aria-label="テスト用MP3をSakutio 無音カッターに追加した画面を拡大表示">
+            <img src="./images/img-01-file-loaded.jpg" width="980" height="342" loading="lazy" alt="テスト用MP3をSakutio 無音カッターに追加した画面" />
+          </button>
+          <figcaption>29.0秒のテスト用MP3を読み込んだ状態</figcaption>
+        </figure>
+
+        <h3>2. まずは「標準」で試す</h3>
+        <p>次に「無音判定を設定」で、どの程度の静けさを無音として扱うか選びます。</p>
+        <p>初めて使う場合は、まず「標準」から試すと分かりやすいです。</p>
+        <p>今回の標準設定は、-40 dB、最低無音時間 0.8秒、カット前後に残す無音（合計）0.2秒です。</p>
+        <p>dBや最低無音時間の詳しい意味は、ここでは深掘りしません。</p>
+        <p>dBなどの詳しい説明はこちら → <a href="https://silence-cutter.sakutio.com/guide/silence-cut-settings/">無音カットの設定は何dB？しきい値・無音時間・余白の目安</a></p>
+        <figure class="sg-figure sg-figure--wide">
+          <button class="sg-figure__zoom" type="button" aria-label="無音判定の標準設定マイナス40dB・0.8秒を選択した画面を拡大表示">
+            <img src="./images/img-02-standard-setting.jpg" width="1348" height="926" loading="lazy" alt="無音判定の標準設定マイナス40dB・0.8秒を選択した画面" />
+          </button>
+          <figcaption>まずは「標準」-40dB / 0.8秒で試します</figcaption>
+        </figure>
+
+        <h3>3. 「無音部分を調べる」を押す</h3>
+        <p>設定したら「無音部分を調べる」を押します。</p>
+        <p>この段階では、まだ実際のカットは行われません。</p>
+        <p>ブラウザ内でファイルを調べ、条件に当てはまる無音区間だけを候補として検出します。</p>
+        <p>長いファイルほど処理に時間がかかる場合があります。</p>
+        <figure class="sg-figure sg-figure--wide">
+          <button class="sg-figure__zoom" type="button" aria-label="無音部分を自動検出している処理中画面を拡大表示">
+            <img src="./images/img-03-detecting.jpg" width="1348" height="926" loading="lazy" alt="無音部分を自動検出している処理中画面" />
+          </button>
+          <figcaption>「無音部分を調べる」で候補を検出。この時点ではまだカットしません</figcaption>
+        </figure>
+
+        <h3>4. 検出結果を確認する</h3>
+        <p>今回のテストファイルでは、無音部分が3件検出されました。</p>
+        <p>画面には、無音部分、削除対象、元の長さ、カット後の長さ（目安）、短縮時間（目安）が表示されます。</p>
+        <p>今回の結果は、無音部分：3件、削除対象：3件、元の長さ：29.0秒、カット後の長さ（目安）：23.6秒、短縮時間（目安）：5.4秒となりました。</p>
+        <p>実際に処理する前に、どのくらい短くなりそうか確認できます。</p>
+        <figure class="sg-figure sg-figure--wide">
+          <button class="sg-figure__zoom" type="button" aria-label="3件の無音区間を検出しカット後23.6秒と表示された結果画面を拡大表示">
+            <img src="./images/img-04-detection-summary.jpg" width="1348" height="926" loading="lazy" alt="3件の無音区間を検出しカット後23.6秒と表示された結果画面" />
+          </button>
+          <figcaption>3件の無音部分を検出し、29.0秒から23.6秒になる見込み</figcaption>
+        </figure>
+
+        <h3>5. 削除する区間を確認する</h3>
+        <p>検出された無音区間は一覧で確認できます。</p>
+        <p>今回検出されたのは次の3区間です。</p>
+        <div class="guide-table-wrap">
+          <table class="guide-table">
+            <thead>
+              <tr>
+                <th scope="col">区間</th>
+                <th scope="col">時間</th>
+                <th scope="col">無音の長さ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">#1</th>
+                <td data-label="時間">0:06.0 → 0:08.0</td>
+                <td data-label="無音の長さ">2.0秒</td>
+              </tr>
+              <tr>
+                <th scope="row">#2</th>
+                <td data-label="時間">0:15.0 → 0:16.5</td>
+                <td data-label="無音の長さ">1.5秒</td>
+              </tr>
+              <tr>
+                <th scope="row">#3</th>
+                <td data-label="時間">0:22.5 → 0:25.0</td>
+                <td data-label="無音の長さ">2.5秒</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>各区間の「確認」を押すと、その前後を再生できます。</p>
+        <p>意味のある間や残しておきたい静かな場面があれば、「削除」のチェックを外します。</p>
+        <p>今回の例では3区間すべてを削除対象のまま処理します。</p>
+        <figure class="sg-figure sg-figure--wide">
+          <button class="sg-figure__zoom" type="button" aria-label="無音区間一覧で削除対象を選び前後を確認再生している画面を拡大表示">
+            <img src="./images/img-05-interval-list-and-preview.jpg" width="1348" height="926" loading="lazy" alt="無音区間一覧で削除対象を選び前後を確認再生している画面" />
+          </button>
+          <figcaption>各区間を確認再生し、残したい区間は削除対象から外せます</figcaption>
+        </figure>
+
+        <h3>6. 無音をカットして完成ファイルを保存する</h3>
+        <p>内容を確認したら「この内容で無音をカット」を押します。</p>
+        <p>選択した無音区間だけが実際に削除され、入力と同じ拡張子で完成ファイルが作成されます。</p>
+        <p>処理が終わると「完成ファイルを保存」ボタンが表示されます。</p>
+        <p>今回の結果は、完成ファイル <code>silence-cut-sample-silence-cut.mp3</code>、長さ 23.6秒、容量 94.5KB でした。</p>
+        <p>容量はファイルの長さだけでなく再エンコード条件などにも左右されるため、短縮した時間と同じ割合で小さくなるわけではありません。</p>
+        <figure class="sg-figure sg-figure--wide">
+          <button class="sg-figure__zoom" type="button" aria-label="無音カット完了後に完成したMP3ファイルを保存できる画面を拡大表示">
+            <img src="./images/img-06-complete-and-save.jpg" width="1348" height="926" loading="lazy" alt="無音カット完了後に完成したMP3ファイルを保存できる画面" />
+          </button>
+          <figcaption>処理後は完成ファイルの長さと容量を確認して保存できます</figcaption>
+        </figure>
+      </section>
+
+      <section class="sg-section sg-prose" id="results">
+        <h2>実際に何秒短くなった？</h2>
+        <p>今回の実測結果をまとめます。</p>
+        <div class="guide-table-wrap">
+          <table class="guide-table">
+            <thead>
+              <tr>
+                <th scope="col">項目</th>
+                <th scope="col">結果</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">元ファイル</th>
+                <td data-label="結果">MP3 / 29.0秒 / 681.5KB</td>
+              </tr>
+              <tr>
+                <th scope="row">設定</th>
+                <td data-label="結果">標準（-40dB / 0.8秒）</td>
+              </tr>
+              <tr>
+                <th scope="row">カット前後に残す無音</th>
+                <td data-label="結果">合計0.2秒</td>
+              </tr>
+              <tr>
+                <th scope="row">検出された無音</th>
+                <td data-label="結果">3件</td>
+              </tr>
+              <tr>
+                <th scope="row">検出された無音の合計</th>
+                <td data-label="結果">6.0秒</td>
+              </tr>
+              <tr>
+                <th scope="row">実際の短縮時間</th>
+                <td data-label="結果">5.4秒</td>
+              </tr>
+              <tr>
+                <th scope="row">完成ファイル</th>
+                <td data-label="結果">MP3 / 23.6秒 / 94.5KB</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>3区間の無音そのものを合計すると6.0秒あります。</p>
+        <p>ただし今回は、会話などが急につながりすぎないよう「カット前後に残す無音（合計）」を0.2秒にしています。</p>
+        <p>そのため、実際に短くなった時間は5.4秒となり、29.0秒から23.6秒になりました。</p>
+        <p>これは今回のテストファイルでの実測結果です。すべての動画・音声が同じ割合で短くなるわけではありません。</p>
+      </section>
+
+      <section class="sg-section sg-prose" id="unnatural">
+        <h2>無音カットが不自然になる主な原因</h2>
+        <p>無音を多く消せば、必ず聞きやすくなるわけではありません。</p>
+        <p>会話では短い「間」が自然さにつながることもあります。</p>
+        <p>特に次のような場合は、結果を確認してから調整します。</p>
+        <h3><span class="sg-marker">短い間までたくさん検出された場合</span></h3>
+        <p>「強め」では短い静けさも拾いやすくなります。</p>
+        <p>会話の間まで多く候補になる場合は「標準」や「控えめ」を試します。</p>
+        <h3><span class="sg-marker">無音なのに検出されない場合</span></h3>
+        <p>エアコンやマイクのノイズなどがあると、人には静かに聞こえても音量がしきい値を下回らない場合があります。</p>
+        <p>その場合は「強め」や詳細設定を試します。</p>
+        <h3><span class="sg-marker">会話が急に繋がって聞こえた場合</span></h3>
+        <p>前後の無音を完全に0秒へ近づけると、話し方がせわしなく感じられる場合があります。</p>
+        <p>最初は推奨の0.2秒を残して確認すると分かりやすいです。</p>
+      </section>
+
+      <section class="sg-section sg-prose" id="settings-differ">
+        <h2>おすすめ設定は動画・音声によって違う</h2>
+        <p>今回の例では「標準」で3件を自然に検出できましたが、すべてのファイルに同じ設定が最適とは限りません。</p>
+        <p>録音環境、話し方、BGM、環境音などによって適した設定は変わります。</p>
+        <p>まず「標準」で結果を確認し、必要な場合だけ「控えめ」「強め」や詳細設定を調整する方法がおすすめです。</p>
+        <p>詳しい設定の考え方はこちら。</p>
+        <p><a href="https://silence-cutter.sakutio.com/guide/silence-cut-settings/">無音カットの設定は何dB？しきい値・無音時間・余白の目安</a></p>
+      </section>
+
+      <section class="sg-section sg-prose" id="use-cases">
+        <h2>どんな動画・音声に向いている？</h2>
+        <p>Sakutio 無音カッターは、長い沈黙を探す手間を減らしたいファイルに向いています。</p>
+        <div class="sg-note sg-note--info use-case-list-box">
+          <ul>
+            <li>解説動画や講義動画</li>
+            <li>画面収録で操作待ちの時間がある動画</li>
+            <li>会議や講義の録音</li>
+            <li>長い間が何度も入る音声</li>
+            <li>Vlogなどで話していない部分を短くしたい場合</li>
+          </ul>
+        </div>
+        <p>一方、音楽や演出上の「間」など、静かな部分そのものに意味がある素材では、検出結果をそのまますべて削除せず、確認再生してから選ぶことが大切です。</p>
+      </section>
+
+      <section class="sg-section sg-prose" id="faq">
+        <h2>よくある質問</h2>
+        <h3>検出された無音は自動ですべて削除されますか？</h3>
+        <p>いいえ。</p>
+        <p>無音区間の検出は自動ですが、検出しただけではカットされません。</p>
+        <p>一覧で内容を確認し、削除対象を選んでから「この内容で無音をカット」を押します。</p>
+        <h3>音声ファイルにも使えますか？</h3>
+        <p>はい。</p>
+        <p>MP3 / WAV / M4A の音声と、MP4 / MOV の動画に対応しています。</p>
+        <h3>完全な無音でなくても検出できますか？</h3>
+        <p>設定した音量のしきい値より静かな状態が、指定した時間以上続いた区間を候補として検出します。</p>
+        <p>環境音やノイズが大きい場合は、設定調整が必要になることがあります。</p>
+        <h3>元のファイルは書き換えられますか？</h3>
+        <p>元ファイルそのものを書き換える方式ではありません。</p>
+        <p>処理後のファイルを別の完成ファイルとして保存します。</p>
+        <h3>ファイルはサーバーへアップロードされますか？</h3>
+        <p>選択した動画・音声ファイルは、無音カットのためにSakutioサーバーへアップロードせず、ブラウザ内で処理します。</p>
+        <h3>長い動画でも使えますか？</h3>
+        <p>利用できますが、長い動画や容量の大きなファイルほどブラウザのメモリと処理時間を多く使います。</p>
+        <p>特に動画はカット位置の正確さを優先して再エンコードするため、音声だけの場合より処理に時間がかかることがあります。</p>
+      </section>
+
+      <section class="sg-section sg-prose" id="guide-summary">
+        <h2>まとめ</h2>
+        <p>長い動画や音声から無音部分を1か所ずつ探して削除するのは、ファイルが長くなるほど手間がかかります。</p>
+        <p>Sakutio 無音カッターなら、次の流れで処理できます。</p>
+        <p class="process-flow"><span class="sg-marker">無音候補を自動検出 → 前後を確認 → 削除する区間を選択 → まとめてカット → 完成ファイルを保存</span></p>
+        <p>今回の実測では、29.0秒のMP3から3件の無音区間を検出し、標準設定で23.6秒まで5.4秒短くできました。</p>
+        <p>まずは標準設定で無音部分を調べ、検出結果を確認してみてください。</p>
+      </section>
+
+      <div class="sg-cta sg-cta--secondary" style="margin-top:28px">
+        <p class="sg-cta__text">検出結果を確認してから、必要な無音区間だけまとめてカットできます。</p>
+        <a class="sg-button sg-button--primary" href="https://silence-cutter.sakutio.com/">Sakutio 無音カッターで無音部分をカットする</a>
+      </div>
+    </article>
+  </main>
+  <sakutio-global-footer></sakutio-global-footer>
+</div>
+</body>
+</html>
