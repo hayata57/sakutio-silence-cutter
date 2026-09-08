@@ -1,0 +1,32 @@
+name: Shared Chrome recipient policy
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  policy:
+    name: shared-chrome/recipient-policy-runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out protected base policy
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Install protected parser dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Validate candidate as data and report head status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SYNC_ACTOR_ID: ${{ vars.SAKUTIO_SHARED_CHROME_APP_ACTOR_ID }}
+        run: node scripts/shared-chrome/recipient-policy.mjs

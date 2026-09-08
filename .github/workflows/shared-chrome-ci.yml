@@ -1,0 +1,48 @@
+name: Shared Chrome unprivileged CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: shared-chrome/unprivileged-ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out candidate without credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      - name: Prepare local FFmpeg runtime
+        run: npm run prepare:core
+
+      - name: Test shared Chrome policy
+        run: npm run shared-chrome:test
+
+      - name: Verify installed shared Chrome
+        run: npm run shared-chrome:verify
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify release structure
+        run: npm run release:verify

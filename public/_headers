@@ -1,2 +1,6 @@
 /ffmpeg-core-gpl/ffmpeg-core.wasm.gz
   Content-Type: application/gzip
+
+/shared-chrome/version.json
+  Cache-Control: no-store
+  Content-Type: application/json

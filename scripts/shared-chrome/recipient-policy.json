@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "repository": "hayata57/sakutio-silence-cutter",
+  "baseBranch": "main",
+  "entryFiles": [
+    "index.html"
+  ],
+  "generatedFiles": [
+    "src/shared-chrome/generated/source/header.html",
+    "src/shared-chrome/generated/source/footer.html",
+    "src/shared-chrome/generated/SharedChrome.tsx",
+    "src/shared-chrome/generated/shared-chrome.css",
+    "public/shared-chrome/version.json"
+  ],
+  "statusContext": "shared-chrome/recipient-policy",
+  "ciCheck": "shared-chrome/unprivileged-ci",
+  "integration": {
+    "mountPath": "src/App.tsx",
+    "mountExport": "App",
+    "components": [
+      {
+        "wrapperPath": "src/components/SakutioHeader.tsx",
+        "wrapperExport": "SakutioHeader",
+        "generatedImportSpecifier": "../shared-chrome/generated/SharedChrome",
+        "generatedExport": "SharedChromeHeader",
+        "mountImportSpecifier": "./components/SakutioHeader"
+      },
+      {
+        "wrapperPath": "src/components/SakutioFooter.tsx",
+        "wrapperExport": "SakutioFooter",
+        "generatedImportSpecifier": "../shared-chrome/generated/SharedChrome",
+        "generatedExport": "SharedChromeFooter",
+        "mountImportSpecifier": "./components/SakutioFooter"
+      }
+    ]
+  }
+}

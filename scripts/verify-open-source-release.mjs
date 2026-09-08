@@ -3,6 +3,8 @@ import { createHash } from 'node:crypto'
 import { gunzipSync } from 'node:zlib'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { verifySharedAssets } from './verify-shared-assets.mjs'
+import { verifyInstalled } from './shared-chrome/verify-installed.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -78,6 +80,8 @@ if (!licensePage.includes('https://github.com/hayata57/sakutio-silence-cutter'))
 
 const dist = path.join(root, 'dist')
 if (!(await exists(dist))) fail('dist/ does not exist. Run npm run build before release:verify.')
+verifySharedAssets(new URL('../', import.meta.url), { built: true })
+await verifyInstalled(root)
 
 const headersPath = path.join(dist, '_headers')
 if (!(await exists(headersPath))) fail('Built release is missing: dist/_headers')
