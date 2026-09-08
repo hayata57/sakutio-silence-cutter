@@ -1,32 +1,4 @@
-.app-shell { min-height: 100vh; }
-/* Reserve the measured final header height before sakutio-global-header.js upgrades the host. */
-sakutio-global-header {
-  display: block;
-  min-height: calc(3.75rem + 1px);
-}
-@media (max-width: 542px) {
-  sakutio-global-header { min-height: 90.5px; }
-}
-@media (max-width: 480px) {
-  sakutio-global-header { min-height: 70.2px; }
-}
-@media (max-width: 391px) {
-  sakutio-global-header { min-height: 103px; }
-}
-.sakutio-header-fallback, .sakutio-footer-fallback {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 20px;
-  background: #fff;
-  border-bottom: 1px solid #e6ebf4;
-  font-size: 14px;
-}
-.sakutio-footer-fallback { margin-top: 24px; border-top: 1px solid #e6ebf4; border-bottom: 0; }
-.sakutio-header-fallback nav, .sakutio-footer-fallback nav { display: flex; flex-wrap: wrap; gap: 12px; }
-.sakutio-header-fallback a, .sakutio-footer-fallback a { color: #4258a1; text-decoration: none; }
-.sakutio-header-fallback__brand { font-weight: 750; }
+.app-shell { min-height: 100vh; display: flex; flex-direction: column; }
 .app-main { width: min(980px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0 72px; }
 .hero { text-align: center; max-width: 720px; margin: 0 auto 28px; }
 .hero__eyebrow { margin: 0 0 9px; color: var(--brand); font-weight: 750; font-size: 14px; }
@@ -153,11 +125,7 @@ sakutio-global-header {
   .output-card .button { grid-column: 1 / -1; width: 100%; }
 }
 
-@media (max-width: 391px) {
-  .sakutio-header-fallback { align-items: flex-start; flex-direction: column; padding: 10px 14px; }
-}
 @media (max-width: 480px) {
-  .sakutio-footer-fallback { align-items: flex-start; flex-direction: column; padding: 10px 14px; }
   .app-main { width: calc(100% - 14px); }
   .hero h1 { font-size: 29px; }
   .step-card__body { padding-left: 14px; }

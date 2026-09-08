@@ -5,9 +5,14 @@
   "type": "module",
   "scripts": {
     "prepare:core": "node scripts/prepare-ffmpeg-core.mjs",
-    "predev": "npm run prepare:core",
+    "predev": "npm run verify:shared && npm run shared-chrome:verify && npm run prepare:core",
     "dev": "vite",
-    "prebuild": "npm run prepare:core",
+    "prebuild": "npm run verify:shared && npm run shared-chrome:verify && npm run prepare:core",
+    "verify:shared": "node scripts/verify-shared-assets.mjs",
+    "pin:shared": "node scripts/pin-shared-assets.mjs",
+    "shared-chrome:verify": "node scripts/shared-chrome/verify-installed.mjs",
+    "shared-chrome:test": "node --test scripts/shared-chrome/shared-chrome.test.mjs",
+    "postbuild": "npm run verify:shared -- --dist",
     "build": "tsc -b && vite build",
     "lint": "oxlint src scripts",
     "test": "vitest run --dir src",
@@ -31,9 +36,13 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.4",
     "oxlint": "1.75.0",
+    "parse5": "8.0.1",
+    "postcss": "8.5.28",
+    "postcss-selector-parser": "7.1.6",
+    "postcss-value-parser": "4.2.0",
     "typescript": "6.0.2",
     "vite": "8.2.0",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   },
   "license": "GPL-2.0-or-later",
   "repository": {

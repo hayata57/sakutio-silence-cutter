@@ -1,0 +1,11 @@
+{
+  "reviewedAt": "2026-09-08",
+  "canonicalRepository": "hayata57/sakutio-home",
+  "assets": [
+    {
+      "source": "https://sakutio.com/shared/sakutio-brand-v1.css",
+      "file": "sakutio-brand-v1-e59ad2998fb2.css",
+      "sha256": "e59ad2998fb241856777f00b0d9d0043ae17ccab579a19ef2a179ad466d94f58"
+    }
+  ]
+}

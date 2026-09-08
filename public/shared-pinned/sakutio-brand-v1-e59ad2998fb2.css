@@ -1,0 +1,63 @@
+:root {
+  --sakutio-brand-primary: #2563eb;
+  --sakutio-brand-primary-deep: #1d4ed8;
+  --sakutio-brand-navy: #1e3a8a;
+  --sakutio-brand-indigo: #4f46e5;
+  --sakutio-brand-soft: #eff6ff;
+  --sakutio-brand-soft-2: #dbeafe;
+  --sakutio-brand-border: #93c5fd;
+
+  --sakutio-bg: #f3f6f8;
+  --sakutio-surface: #fafbfc;
+  --sakutio-surface-soft: #f5f7fa;
+  --sakutio-raised: #ffffff;
+  --sakutio-border: #dde4ea;
+
+  --sakutio-heading: #111827;
+  --sakutio-text: #374151;
+  --sakutio-text-muted: #5f6b76;
+
+  --sakutio-link: #1d4ed8;
+  --sakutio-link-hover: #1e3a8a;
+  --sakutio-link-underline: #93c5fd;
+
+  --sakutio-point-bg: #eff6ff;
+  --sakutio-point-border: #bfdbfe;
+  --sakutio-point-text: #1e3a8a;
+
+  --sakutio-caution-bg: #fffbeb;
+  --sakutio-caution-border: #fde68a;
+  --sakutio-caution-text: #92400e;
+
+  --sakutio-info-bg: #eef8f4;
+  --sakutio-info-border: #b9ddcf;
+  --sakutio-info-text: #315f51;
+
+  --sakutio-danger: #b91c1c;
+  --sakutio-danger-bg: #fef2f2;
+  --sakutio-marker: #ffe27a;
+
+  --sakutio-radius-sm: 8px;
+  --sakutio-radius-md: 12px;
+  --sakutio-radius-lg: 16px;
+
+  color: var(--sakutio-text);
+  background: var(--sakutio-bg);
+  font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scrollbar-gutter: stable; }
+body { margin: 0; min-width: 320px; background: var(--sakutio-bg); color: var(--sakutio-text); }
+a { color: inherit; }
+button, input, select, textarea { font: inherit; }
+
+:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.35);
+  outline-offset: 3px;
+  border-radius: 4px;
+}

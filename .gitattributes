@@ -1,0 +1,5 @@
+/public/shared-pinned/* text eol=lf
+/public/shared-chrome/* text eol=lf
+/src/shared-chrome/generated/** text eol=lf
+/scripts/shared-chrome/** text eol=lf
+/.github/workflows/** text eol=lf

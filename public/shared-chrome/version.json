@@ -1,0 +1,22 @@
+{
+  "notice": "AUTO-GENERATED. DO NOT EDIT.",
+  "schemaVersion": 1,
+  "generatorVersion": 2,
+  "version": "480617109d769b0fc60f8bd652a989822ea1e135d2e160670645557545c1a9ea",
+  "sourceHashes": {
+    "header.html": "355837a49b5469253c5cf8676c922975d8260dc17f4e6e5cbd13710aa3f9975d",
+    "footer.html": "8c27e2fd1a6acbfcca7f8649658d3c970de2ac46cf2e93c6a0c58c2fb414437b",
+    "chrome.css": "2a3788fa2da7a0d9c447c4278bc5a07c0ccfa0dcb38608ebd783e38d2f9f975b"
+  },
+  "canonicalRepository": "hayata57/sakutio-home",
+  "sourceCommit": "8e42597c3186723d3e76a59966c15c16bdc9ba5c",
+  "sourceGeneration": 93,
+  "targetRepository": "hayata57/sakutio-silence-cutter",
+  "targetBranch": "main",
+  "artifactHashes": {
+    "src/shared-chrome/generated/source/header.html": "b14477417f617686a3059d2f4e285b02694412131b07d6561e13589da7d594fc",
+    "src/shared-chrome/generated/source/footer.html": "6aa78031d512e07b1aa21e35e7d635a0e03622e31d1f2e4d91b8ae0d8108cdeb",
+    "src/shared-chrome/generated/SharedChrome.tsx": "968e423ee87cae156cb0234c6b854cf37c021519ed96f64424149f805613bd43",
+    "src/shared-chrome/generated/shared-chrome.css": "6fb07c3892c8189178b9169ca09ae4690460d72b6a2dbda0ca2d8cd5462e2938"
+  }
+}
