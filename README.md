@@ -89,3 +89,8 @@ npm run release:sources
 公開時の正本チェックは `OPEN_SOURCE_RELEASE.md`、source provenanceは `SOURCE.md` と `gpl-source-manifest.json` を参照してください。
 
 `@ffmpeg/core` のversionを変更する場合、単にpackage.jsonだけ更新してはいけません。対応するupstream release commit / build inputs / source bundleを同時に更新します。
+
+
+### Static guide Header/Footer
+
+Production builds embed the validated local shared Chrome into static public guide pages, preserving article content. React guide pages use the same generated wrappers as the app. No remote synchronization occurs during build. Run the normal build and preview its output to check guides; CI independently verifies the generated pages with node scripts/shared-chrome/static-pages.mjs --verify. Missing guide slots or legacy Header/Footer scripts in published HTML fail the build. Guide v1 article behavior remains separate from Header/Footer synchronization.

@@ -46,3 +46,6 @@ jobs:
 
       - name: Verify release structure
         run: npm run release:verify
+
+      - name: Verify static page Chrome against local canonical source
+        run: node scripts/shared-chrome/static-pages.mjs --verify
