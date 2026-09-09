@@ -9,8 +9,8 @@
     "chrome.css": "2a3788fa2da7a0d9c447c4278bc5a07c0ccfa0dcb38608ebd783e38d2f9f975b"
   },
   "canonicalRepository": "hayata57/sakutio-home",
-  "sourceCommit": "3fb4b319d4da2d075b18a848961f4dfc94ca5560",
-  "sourceGeneration": 95,
+  "sourceCommit": "55bb098b524924cd090f63bbbfd6aef7c060cd1a",
+  "sourceGeneration": 96,
   "targetRepository": "hayata57/sakutio-silence-cutter",
   "targetBranch": "main",
   "artifactHashes": {
