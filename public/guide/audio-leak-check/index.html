@@ -1,0 +1,1597 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>Sakutio 無音カッターで音声は流出する？通信内容を実際に確認しました</title>
+  <meta name="description" content="Sakutio 無音カッターで選択した音声・動画が外部へ送信されるのか、実際の通信内容と性能計測POSTのPayloadを確認し、ブラウザ内処理の仕組みを説明します。" />
+  <link rel="canonical" href="https://silence-cutter.sakutio.com/guide/audio-leak-check/" />
+  <meta property="og:type" content="article" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta property="og:title" content="Sakutio 無音カッターで音声は流出する？通信内容を実際に確認しました" />
+  <meta property="og:description" content="Sakutio 無音カッターで選択した音声・動画が外部へ送信されるのか、実際の通信内容と性能計測POSTのPayloadを確認し、ブラウザ内処理の仕組みを説明します。" />
+  <meta property="og:url" content="https://silence-cutter.sakutio.com/guide/audio-leak-check/" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="stylesheet" href="https://sakutio.com/shared/sakutio-brand-v1.css" />
+  <link rel="stylesheet" href="https://sakutio.com/shared/sakutio-guide-v1.css" />
+  <script defer src="https://sakutio.com/shared/sakutio-guide-v1.js"></script>
+  <style>
+    .sg-header,
+    .sg-prose,
+    .sg-summary,
+    .sg-toc,
+    .sg-faq {
+      letter-spacing: 0;
+    }
+    .sg-prose {
+      line-height: 1.74;
+    }
+    .sg-prose p {
+      margin-bottom: 18px;
+    }
+    .sg-prose li + li {
+      margin-top: 6px;
+    }
+    .sg-section > h2 {
+      width: 100%;
+      margin: 0 0 18px;
+      padding: 12px 14px 12px 32px;
+      border: 1px solid #b9cbe0;
+      border-radius: 7px;
+      background: #fbfdff;
+      color: var(--sakutio-heading);
+      font-size: 28px;
+      line-height: 1.45;
+      font-weight: 800;
+      letter-spacing: -0.015em;
+      overflow-wrap: anywhere;
+    }
+    .sg-section > h2::before {
+      left: 13px;
+      top: 50%;
+      bottom: auto;
+      width: 8px;
+      height: 0.9em;
+      border-radius: 1px;
+      background: #5d9bd3;
+      transform: translateY(-50%);
+    }
+    .sg-section h3 {
+      margin: 34px 0 12px;
+      letter-spacing: 0;
+    }
+    .sg-summary {
+      background: #f6f9fc;
+      border-left-color: #c8daed;
+    }
+    .sg-toc {
+      margin-top: 28px;
+    }
+    .sg-toc summary {
+      min-height: 42px;
+      padding: 11px 16px;
+    }
+    .sg-toc__list {
+      padding: 0 16px 12px;
+    }
+    .sg-toc__item + .sg-toc__item {
+      margin-top: 1px;
+    }
+    .sg-toc__link {
+      min-height: 38px;
+      padding: 6px;
+      grid-template-columns: 1.8rem 1fr;
+    }
+    .sg-toc__link:hover {
+      background: #eef4fa;
+    }
+    .sg-table-wrap {
+      width: 100%;
+      margin: 24px 0 30px;
+      overflow-x: auto;
+    }
+    .sg-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border-top: 1px solid #cfd9e3;
+      border-bottom: 1px solid #cfd9e3;
+      background: var(--sakutio-raised);
+    }
+    .sg-table th,
+    .sg-table td {
+      padding: 13px 15px;
+      border: 0;
+      border-bottom: 1px solid #e1e7ed;
+      text-align: left;
+      vertical-align: top;
+    }
+    .sg-table thead th {
+      border-bottom: 1px solid #bfd0e0;
+      background: #eaf2fb;
+      color: #243b53;
+      font-weight: 800;
+    }
+    .sg-table tbody tr:nth-child(even):not(.sg-table__key-row) td {
+      background: #f7f9fb;
+    }
+    .sg-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+    .sg-table tbody tr.sg-table__key-row td {
+      background: #edf5ff;
+    }
+    .sg-table tbody tr.sg-table__key-row td:first-child {
+      color: #24476a;
+      font-weight: 760;
+    }
+    .sg-table strong {
+      color: inherit;
+      font-weight: 800;
+    }
+    .sg-no-send-result {
+      padding: 0 0.06em;
+      background: linear-gradient(
+        transparent 48%,
+        var(--sakutio-marker) 48%,
+        var(--sakutio-marker) 94%,
+        transparent 94%
+      );
+      color: #252f3a !important;
+      font-weight: 800;
+      -webkit-box-decoration-break: clone;
+      box-decoration-break: clone;
+    }
+    .sg-inline-jump {
+      margin: -6px 0 18px;
+      font-size: 14px;
+    }
+    .sg-flow-arrow {
+      margin: -8px 0 14px 12px;
+      color: var(--sakutio-text-muted);
+      font-weight: 800;
+    }
+    .sg-evidence-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin: 26px 0 10px;
+    }
+    .sg-evidence-grid .sg-figure {
+      width: 100%;
+      margin: 0;
+    }
+    .sg-evidence-grid .sg-figure__zoom {
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      background: #111827;
+    }
+    .sg-evidence-grid .sg-figure__zoom img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #111827;
+    }
+    .sg-evidence-grid figcaption {
+      margin-top: 8px;
+      font-size: 13px;
+      line-height: 1.55;
+      letter-spacing: 0;
+      text-align: left;
+    }
+    .sg-evidence-inline-note {
+      margin: 8px 0 22px;
+      color: var(--sakutio-text-muted);
+      font-size: 14px;
+      line-height: 1.55;
+      letter-spacing: 0;
+    }
+    .sg-five-format-details {
+      margin-top: 34px;
+      border-top: 1px solid var(--sakutio-border);
+      border-bottom: 1px solid var(--sakutio-border);
+    }
+    .sg-five-format-details > summary {
+      position: relative;
+      padding: 18px 36px 18px 0;
+      cursor: pointer;
+      list-style: none;
+      color: #202a35;
+      font-size: 21px;
+      line-height: 1.5;
+      font-weight: 780;
+    }
+    .sg-five-format-details > summary::-webkit-details-marker {
+      display: none;
+    }
+    .sg-five-format-details > summary::after {
+      content: "＋";
+      position: absolute;
+      right: 2px;
+      top: 50%;
+      color: var(--sakutio-brand-primary);
+      font-size: 22px;
+      font-weight: 700;
+      transform: translateY(-50%);
+    }
+    .sg-five-format-details[open] > summary::after {
+      content: "−";
+    }
+    .sg-five-format-details__body {
+      padding-bottom: 22px;
+    }
+    .sg-five-format-details__body > p {
+      margin-bottom: 14px;
+    }
+    .sg-verification-table {
+      margin: 20px 0 24px;
+    }
+    .sg-verification-evidence-table th:last-child,
+    .sg-verification-evidence-table td:last-child {
+      width: 112px;
+      text-align: center;
+    }
+    .sg-record-open {
+      min-height: 34px;
+      padding: 5px 10px;
+      border: 1px solid var(--sakutio-brand-border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--sakutio-brand-primary-deep);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .sg-record-open:hover {
+      background: var(--sakutio-brand-soft);
+    }
+    .sg-record-dialog {
+      max-width: 900px;
+      max-height: calc(100dvh - 40px);
+      width: min(900px, calc(100vw - 40px));
+      padding: 0;
+      border: 0;
+      background: transparent;
+      overscroll-behavior: contain;
+    }
+    .sg-record-dialog:not([open]) {
+      display: none;
+    }
+    .sg-record-dialog::backdrop {
+      background: rgba(15, 23, 42, 0.72);
+    }
+    .sg-record-dialog__inner {
+      position: relative;
+      max-height: calc(100dvh - 40px);
+      padding: 26px;
+      overflow: auto;
+      overscroll-behavior: contain;
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 18px 60px rgba(15, 23, 42, 0.35);
+    }
+    .sg-record-dialog__close {
+      position: absolute;
+      z-index: 2;
+      top: 10px;
+      right: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border: 2px solid rgba(255, 255, 255, 0.88);
+      border-radius: 999px;
+      background: #111827;
+      color: #fff;
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    body.sg-modal-open {
+      overflow: hidden !important;
+    }
+    .sg-record-kicker {
+      color: var(--sakutio-brand-primary);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .sg-record-head h3 {
+      margin: 3px 0 18px;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+    .sg-record-explain {
+      margin: 0 0 16px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: var(--sakutio-surface-soft);
+      color: var(--sakutio-text);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .sg-record-summary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1px;
+      margin: 0;
+      border: 1px solid var(--sakutio-border);
+      background: var(--sakutio-border);
+    }
+    .sg-record-summary div {
+      padding: 10px 12px;
+      background: #fff;
+    }
+    .sg-record-summary dt {
+      color: var(--sakutio-text-muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .sg-record-summary dd {
+      margin: 4px 0 0;
+      overflow-wrap: anywhere;
+      font-size: 14px;
+    }
+    .sg-record-source {
+      margin: 12px 0 0;
+      color: var(--sakutio-text-muted);
+      font-size: 12px;
+    }
+    .sg-record-raw {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--sakutio-border);
+    }
+    .sg-record-raw summary {
+      color: var(--sakutio-brand-primary-deep);
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .sg-record-raw h4 {
+      margin: 18px 0 8px;
+      font-size: 14px;
+    }
+    .sg-record-raw pre {
+      max-height: 340px;
+      margin: 0;
+      padding: 14px;
+      overflow: auto;
+      overflow-wrap: anywhere;
+      border-radius: 8px;
+      background: #111827;
+      color: #f8fafc;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      overscroll-behavior: contain;
+    }
+    @media (max-width: 900px) {
+      .sg-section > h2 {
+        font-size: 25px;
+      }
+    }
+    @media (max-width: 600px) {
+      .sg-prose {
+        font-size: 16px;
+        line-height: 1.76;
+      }
+      .sg-toc {
+        margin-top: 24px;
+      }
+      .sg-toc summary {
+        padding: 10px 14px;
+      }
+      .sg-toc__list {
+        padding: 0 8px 10px;
+      }
+      .sg-toc__link {
+        padding-right: 5px;
+        padding-left: 5px;
+      }
+      .sg-section > h2 {
+        margin-bottom: 17px;
+        padding: 11px 12px 11px 29px;
+        font-size: 23px;
+        line-height: 1.5;
+      }
+      .sg-section > h2::before {
+        left: 11px;
+        width: 7px;
+        height: 0.88em;
+      }
+      .sg-section h3 {
+        margin-top: 28px;
+        margin-bottom: 11px;
+        font-size: 19px;
+      }
+      .sg-table th,
+      .sg-table td {
+        padding: 10px 11px;
+      }
+      .sg-evidence-grid {
+        grid-template-columns: 1fr;
+      }
+      .sg-evidence-grid .sg-figure__zoom {
+        aspect-ratio: auto;
+      }
+      .sg-evidence-grid .sg-figure__zoom img {
+        height: auto;
+      }
+      .sg-verification-evidence-table th,
+      .sg-verification-evidence-table td {
+        padding: 9px 8px;
+        font-size: 13px;
+      }
+      .sg-verification-evidence-table th:last-child,
+      .sg-verification-evidence-table td:last-child {
+        width: auto;
+      }
+      .sg-record-open {
+        padding: 5px 7px;
+        font-size: 12px;
+      }
+      .sg-record-dialog__inner {
+        padding: 22px 14px 16px;
+      }
+      .sg-record-summary {
+        grid-template-columns: 1fr;
+      }
+    }
+</style>
+</head>
+<body>
+<div class="sg-guide">
+  <sakutio-global-header></sakutio-global-header>
+  <header class="sg-tool-band">
+    <div class="sg-tool-band__inner">
+      <a class="sg-tool-band__name" href="https://silence-cutter.sakutio.com/">Sakutio 無音カッター</a>
+    </div>
+  </header>
+  <main class="sg-page">
+    <article class="sg-article">
+      <nav class="sg-breadcrumb" aria-label="パンくず">
+        <a href="https://sakutio.com/">Sakutio</a>
+        <span aria-hidden="true"> › </span>
+        <a href="https://silence-cutter.sakutio.com/">無音カッター</a>
+        <span aria-hidden="true"> › </span>
+        <a href="https://sakutio.com/guides/">ガイド</a>
+      </nav>
+<header class="sg-header sg-prose"><h1><span class="sg-heading-marker">Sakutio 無音カッターで音声は流出する？通信内容を実際に確認しました</span></h1><p class="sg-lead">Web上で音声や動画を編集するとき、「選んだファイルがサーバーへ送られるのでは？」「録音内容が外部へ流出しない？」「ブラウザ内で処理すると書いてあるけれど、実際にはどのように処理されているの？」と気になることがあります。</p><p>Sakutio 無音カッターは、選択した音声・動画をサーバーへアップロードして加工する方式ではありません。ただし、Webページである以上、通信そのものが一切発生しないわけではありません。</p><p>そこで、MP3・WAV・M4A・MP4・MOVの5形式を実際に処理し、ファイルを選んでから完成ファイルを保存するまでの通信内容とファイル処理の流れを確認しました。この記事では、その確認結果をもとに、どのような通信があり、選択したファイルがどこで処理されているのかを説明します。</p><section class="sg-summary"><h2 class="sg-summary__title">この記事でわかること</h2><ul><li>選択した音声・動画がサーバーへ送信されるのか</li><li>「ブラウザ内で処理」とはどういう意味なのか</li><li>実際にどのような通信が発生しているのか</li><li>ページの性能計測で送られる情報</li><li>今回確認した範囲と、確認範囲外となる問題</li></ul></section></header>
+<details class="sg-toc" open=""><summary>目次</summary><ol class="sg-toc__list"><li class="sg-toc__item"><a class="sg-toc__link" href="#section-01">結論：音声・動画をサーバーへ送って処理する方式ではありません</a></li><li class="sg-toc__item"><a class="sg-toc__link" href="#section-02">「通信がある」ことと「ファイルをアップロードする」ことは別です</a></li><li class="sg-toc__item"><a class="sg-toc__link" href="#section-03">選択したファイルはどこで処理される？</a></li><li class="sg-toc__item"><a class="sg-toc__link" href="#section-04">実際の通信を確認しました</a></li><li class="sg-toc__item"><a class="sg-toc__link" href="#section-05">ページ表示の性能を測るための通信はあります</a></li><li class="sg-toc__item"><a class="sg-toc__link" href="#section-06">運営側に音声や動画が保存される？</a></li><li class="sg-toc__item"><a class="sg-toc__link" href="#section-08">今回の確認範囲外となる問題について</a></li><li class="sg-toc__item"><a class="sg-toc__link" href="#section-09">よくある質問</a></li><li class="sg-toc__item"><a class="sg-toc__link" href="#section-10">まとめ</a></li></ol></details><section class="sg-section sg-prose" id="section-01"><h2>結論：音声・動画をサーバーへ送って処理する方式ではありません</h2><p>選択した音声・動画ファイルは、無音検出やカットのためにサーバーへアップロードして処理する仕組みにはなっていません。ファイルの読み込み、無音部分の検出、カット処理、完成ファイルの作成はブラウザ内で行います。</p>
+<p>今回、次の5形式を実際に処理しました。</p>
+<ul>
+<li>MP3</li>
+<li>WAV</li>
+<li>M4A</li>
+<li>MP4</li>
+<li>MOV</li>
+</ul>
+<p>確認した流れは、<strong>ファイル選択 → 無音検出 → プレビュー → カット → 保存</strong>です。</p>
+<p>この一連の操作中に、選択した音声・動画本体を外部へ送信する通信は確認されませんでした。</p><p class="sg-inline-jump"><a href="#actual-network">実際の通信状況の結果はこちら</a></p></section><section class="sg-section sg-prose" id="section-02"><h2>「通信がある」ことと「ファイルをアップロードする」ことは別です</h2><p>このツールはWebページなので、インターネット通信そのものは発生します。たとえばページを表示したり、処理機能を動かしたりするために、</p>
+<ul>
+<li>HTML</li>
+<li>CSS</li>
+<li>JavaScript</li>
+<li>無音検出やカットに使う処理プログラム</li>
+<li>WebAssembly（WASM）</li>
+<li>Worker</li>
+</ul>
+<p>などをブラウザへ読み込みます。これは、<strong>Webページや処理プログラムをインターネットから受け取る通信</strong>です。</p>
+<p>一方、<strong>ユーザーが選んだMP3や動画をサーバーへ送信する通信</strong>とは別です。</p>
+<p>今回の確認でも、処理プログラムを読み込む通信は発生しましたが、選択した音声・動画本体のアップロードは確認されませんでした。</p>
+<p>そのため、このツールの通信については、<strong>「通信は行われるが、選択した音声・動画をサーバーへ送って無音カットする方式ではない」</strong>という表現が正しいです。</p>
+</section><section class="sg-section sg-prose" id="section-03"><h2>選択したファイルはどこで処理される？</h2><p>ファイルを選ぶと、ブラウザはそのファイルをWebページから扱えるデータとして受け取ります。プレビューには、ブラウザ内部のファイルを参照するための <code>blob:</code> という形式のURLを使用します。これは一般的なWebサイトのURLとは異なり、ブラウザ内にあるデータを参照するためのものです。</p>
+<p>無音検出やカットには、ブラウザ上で動作するFFmpeg.wasmを使用しています。</p>
+<p>処理の流れを簡単にすると、</p>
+<p><strong>ユーザーのPC上のファイル</strong></p>
+<div class="sg-flow-arrow">↓</div>
+<p><strong>ブラウザ</strong></p>
+<div class="sg-flow-arrow">↓</div>
+<p><strong>ブラウザ内のFFmpeg</strong></p>
+<div class="sg-flow-arrow">↓</div>
+<p><strong>無音検出・カット</strong></p>
+<div class="sg-flow-arrow">↓</div>
+<p><strong>完成したデータを作成</strong></p>
+<div class="sg-flow-arrow">↓</div>
+<p><strong>ユーザーのPCへ保存</strong></p>
+<p>となります。サーバーへファイルを送り、加工後のファイルを受け取る方式ではありません。</p>
+</section><section class="sg-section sg-prose" id="section-04"><h2>実際の通信を確認しました</h2><p>今回は本番環境で実際にファイルを処理し、ブラウザから発生した通信を記録しました。ページを開いた際には、画面表示や処理に必要なファイルの読み込みが行われます。</p>
+<p>また、初めて無音検出を実行する際には、ブラウザ内で処理を行うためのFFmpeg関連ファイルも読み込まれます。一方で、MP3・WAV・M4A・MP4・MOVを処理した際、音声・動画本体を含むアップロード通信は確認されませんでした。</p>
+<p>さらに今回確認した環境では、</p>
+<ul>
+<li>localStorage</li>
+<li>sessionStorage</li>
+<li>Cookie</li>
+<li>IndexedDB</li>
+<li>Cache API</li>
+<li>Service Worker</li>
+</ul>
+<p>に、選択したメディアファイルを後から送信するために保存する処理も確認されませんでした。</p>
+<div class="sg-evidence-grid" id="actual-network"><figure class="sg-figure sg-figure--evidence"><button aria-label="通信一覧の画像を拡大表示" class="sg-figure__zoom" data-full-src="./images/network-overview.png" type="button"><img alt="本番環境で確認した通信一覧。Method、Status、Type、SizeとFFmpeg、WASM、Worker、blob URL、性能計測POSTが表示されている" src="./images/network-overview.png"/></button><figcaption>通信確認①　本番環境で確認した通信一覧。FFmpeg、WASM、Worker、blob: URLや性能計測POSTが確認できます。</figcaption></figure><figure class="sg-figure sg-figure--evidence" id="network-check-02"><button aria-label="性能計測POSTのPayload画像を拡大表示" class="sg-figure__zoom" data-full-src="./images/network-performance-payload.png" type="button"><img alt="性能計測POST rum のRequest Payload。ページ表示性能や、使用中のブラウザ環境・メモリ使用量などの計測情報が表示されている" src="./images/network-performance-payload-thumb.png"/></button><figcaption>通信確認②　性能計測POSTのPayload。ページ表示の性能や、使用中のブラウザ環境・メモリ使用量などの計測情報が送信されています。</figcaption></figure></div><p class="sg-evidence-inline-note">非送信の判断は、これらの画像だけでなく、既存の通信ログと実装確認も合わせて行っています。</p><div class="sg-note sg-note--info sg-method-note"><p class="sg-note__label">Methodの見方</p><p>GETは、ページや処理に必要なファイルなどを取得するときに使われる通信です。POSTは、ブラウザ側からサーバーへ情報を送るときに使われる通信です。ただし、POSTがあるだけで音声・動画本体が送られているとは限らないため、送信内容も合わせて確認しています。（通信確認②）</p></div><h3>実測した通信の主な内容</h3>
+<div class="sg-table-wrap"><table class="sg-table">
+<thead><tr><th>通信</th><th>用途</th></tr></thead><tbody>
+<tr><td>HTML / CSS</td><td>ページ表示</td></tr>
+<tr><td>JavaScript</td><td>ツールの動作</td></tr>
+<tr><td>FFmpeg関連ファイル</td><td>ブラウザ内での無音検出・カット</td></tr>
+<tr><td>Worker</td><td>FFmpegの処理</td></tr>
+<tr><td>ページ性能情報</td><td>表示速度や操作性能の計測</td></tr>
+<tr class="sg-table__key-row"><td>選択した音声・動画本体</td><td><strong class="sg-no-send-result">送信は確認されませんでした</strong></td></tr>
+<tr class="sg-table__key-row"><td>完成した音声・動画本体</td><td><strong class="sg-no-send-result">送信は確認されませんでした</strong></td></tr>
+</tbody></table></div><details class="sg-five-format-details"><summary>参考：対応5形式の実測記録</summary><div class="sg-five-format-details__body"><p>今回の確認では、MP3・WAV・M4A・MP4・MOVについて、実際に無音検出からカット・保存まで完了することも確認しました。</p><p>これは通信内容そのものの説明ではありませんが、実際のツール動作を確認した記録として掲載しています。</p><div class="sg-table-wrap sg-verification-table"><table class="sg-table sg-verification-evidence-table"><thead><tr><th>形式</th><th>確認した操作</th><th>結果</th><th>実測記録</th></tr></thead><tbody><tr><td>MP3</td><td>無音検出 → カット → 保存</td><td>確認済み</td><td class="sg-evidence-cell"><button aria-label="MP3の実測記録を表示" class="sg-record-open" data-record="mp3" type="button">記録を見る</button></td></tr><tr><td>WAV</td><td>無音検出 → カット → 保存</td><td>確認済み</td><td class="sg-evidence-cell"><button aria-label="WAVの実測記録を表示" class="sg-record-open" data-record="wav" type="button">記録を見る</button></td></tr><tr><td>M4A</td><td>無音検出 → カット → 保存</td><td>確認済み</td><td class="sg-evidence-cell"><button aria-label="M4Aの実測記録を表示" class="sg-record-open" data-record="m4a" type="button">記録を見る</button></td></tr><tr><td>MP4</td><td>無音検出 → カット → 保存</td><td>確認済み</td><td class="sg-evidence-cell"><button aria-label="MP4の実測記録を表示" class="sg-record-open" data-record="mp4" type="button">記録を見る</button></td></tr><tr><td>MOV</td><td>無音検出 → カット → 保存</td><td>確認済み</td><td class="sg-evidence-cell"><button aria-label="MOVの実測記録を表示" class="sg-record-open" data-record="mov" type="button">記録を見る</button></td></tr></tbody></table></div></div></details></section><section class="sg-section sg-prose" id="section-05"><h2>ページ表示の性能を測るための通信はあります</h2><p>サイトを公開・配信するために利用している外部の配信基盤（XサーバーのようなWebサイト公開用のサービスで、現在はCloudflareを利用しています）では、ページの表示速度や操作性能を確認するための計測も行われています。今回確認された送信内容には、たとえば、</p>
+<ul>
+<li>閲覧しているページ</li>
+<li>ブラウザの種類</li>
+<li>ページの読み込み時間</li>
+<li>JavaScriptのメモリ使用量</li>
+<li>表示速度に関する数値</li>
+<li>操作への応答時間</li>
+<li>性能測定の対象となった画面要素</li>
+</ul>
+<p>などが含まれていました。</p>
+<p>実際の通信内容も確認しましたが、今回確認したデータには、</p>
+<ul>
+<li>選択した音声の中身</li>
+<li>選択した動画の中身</li>
+<li>完成した音声・動画</li>
+<li>処理後のファイルデータ</li>
+<li>元ファイルのメタデータ</li>
+</ul>
+<p>は確認されませんでした。<a class="sg-network-proof-link" href="#network-check-02">（通信確認②）</a></p>
+<p>つまり、<strong>ページの利用に伴う通信はありますが、音声・動画本体を送信する通信とは別のものです。</strong></p>
+</section><section class="sg-section sg-prose" id="section-06"><h2>運営側に音声や動画が保存される？</h2><p><span class="sg-marker">現在の処理には、選択した音声・動画を無音カットのためにサーバーへアップロードし、運営側で保存する仕組みはありません。</span></p>
+<p>ただし、通常のWebサイトと同様に、ページへのアクセスや性能計測などに伴う通信情報まで一切発生しないという意味ではありません。</p></section><section class="sg-section sg-prose" id="section-08"><h2>今回の確認範囲外となる問題について</h2><p>今回確認したのは、</p>
+<ul>
+<li>正常に動作しているWebサイト</li>
+<li>正常なブラウザ</li>
+<li>一般的な音声・動画ファイル</li>
+<li>通常の操作</li>
+</ul>
+<p>という条件で、このツール自身や通常の配信処理によって音声・動画本体が外部へ送信されるかどうかです。この条件では、音声・動画本体を外部へ送信する処理は確認されませんでした。</p>
+<p>一方で、Webツールの通常動作とは別に、</p>
+<ul>
+<li>利用している端末のマルウェア</li>
+<li>悪意のあるブラウザ拡張機能</li>
+<li>ブラウザ自体の脆弱性</li>
+<li>通信環境（公共Wi-Fiなど、通信が傍受されやすい環境）や端末側の問題</li>
+<li>Webサイトや配信環境そのものが外部から侵害された場合</li>
+</ul>
+<p>など、運営側の通常処理とは別の要因によるリスクをすべて排除できるものではありません。これらは今回確認した「ファイルを選択して無音カットする通常の処理」とは別のセキュリティ上の問題になります。</p>
+<p>特に機密性の高いファイルをWebサービスで扱う場合は、今回の確認内容も判断材料の一つとして、用途や必要な安全性に応じて利用を判断してください。</p></section><section class="sg-section sg-prose" id="section-09"><h2>よくある質問</h2><div class="sg-faq">
+<details><summary>ファイルを選択しただけで送信されますか？</summary><div class="sg-faq__answer"><p>現在の実装では、選択したファイルを無音カットのためにサーバーへアップロードする処理はありません。ブラウザが受け取ったファイルを、そのブラウザ内で利用します。</p>
+</div></details>
+<details><summary>「無音部分を調べる」を押すと送信されますか？</summary><div class="sg-faq__answer"><p>無音検出はブラウザ内で動作するFFmpeg.wasmを利用して行います。処理プログラムを読み込む通信はありますが、今回の実測では選択した音声・動画本体を送信する通信は確認されませんでした。</p>
+</div></details>
+<details><summary>動画も同じですか？</summary><div class="sg-faq__answer"><p>はい。MP4とMOVについても実際に無音検出・カット・保存まで行い、動画本体をアップロードする通信は確認されませんでした。</p>
+</div></details>
+<details><summary>通信をまったく行わないツールですか？</summary><div class="sg-faq__answer"><p>いいえ。Webページや処理プログラムの読み込み、ページ性能の計測などの通信があります。<strong>「通信をしない」のではなく、「選択した音声・動画をサーバーへ送って処理する方式ではない」</strong>という違いがあります。</p>
+</div></details>
+<details><summary>完成したファイルも送信されませんか？</summary><div class="sg-faq__answer"><p>現在の保存処理では、完成データをブラウザ内で作成し、そのまま利用者の端末へ保存します。完成ファイルをサーバーへアップロードしてからダウンロードし直す方式ではありません。</p>
+</div></details>
+</div></section><section class="sg-section sg-prose" id="section-10"><h2>まとめ</h2><p>Sakutio 無音カッターは、選択した音声・動画をサーバーへアップロードして無音検出やカットを行う方式ではありません。MP3・WAV・M4A・MP4・MOVを実際に処理して通信を確認した結果でも、音声・動画本体の送信は確認されませんでした。一方で、ページの表示、処理プログラムの読み込み、ページ性能の計測などに必要な通信は発生します。</p>
+<p>そのため、<strong>「通信がない」のではなく、「ユーザーが選択した音声・動画本体を外部へ送って処理していない」</strong>というのが現在の実装に沿う内容です。</p>
+<p>今回の確認は、正常なサイト・ブラウザ・通常操作を前提としたものです。端末側の問題や外部からの侵害など、通常の運営・配信処理とは別の要因によるリスクについては別途考える必要があります。</p>
+<p>重要なファイルをWebツールで扱うかどうかについては、こうした仕組みと確認範囲を踏まえて、利用者自身で判断してください。</p></section>
+    </article>
+  </main>
+  <sakutio-global-footer></sakutio-global-footer>
+</div>
+<dialog class="sg-record-dialog" id="sg-record-dialog" aria-label="実測記録">
+  <div class="sg-record-dialog__inner">
+    <button class="sg-record-dialog__close" type="button" aria-label="実測記録を閉じる">×</button>
+    <div id="sg-record-dialog-content"></div>
+  </div>
+</dialog>
+<div hidden>
+<template id="record-mp3">
+<div class="sg-record-head">
+<span class="sg-record-kicker">実測記録</span>
+<h3>MP3</h3>
+</div><p class="sg-record-explain">この記録は、この形式で無音検出・カット・保存まで完了し、保存後のファイル情報も確認した結果です。「codec」は保存後ファイルの形式、「duration」は再生時間、「size」はファイル容量を表します。</p>
+<dl class="sg-record-summary">
+<div><dt>保存ファイル</dt><dd>監査 fixture-silence-cut.mp3</dd></div>
+<div><dt>再生確認</dt><dd>4.2 秒</dd></div>
+<div><dt>出力サイズ</dt><dd>18435 bytes</dd></div>
+<div><dt>ffprobe codec</dt><dd>mp3</dd></div>
+<div><dt>ffprobe duration</dt><dd>4.224000 秒</dd></div>
+<div><dt>エラー</dt><dd>なし</dd></div>
+</dl>
+<p class="sg-record-source">
+        出典：02-production-five-formats-results.json / production-output-mp3.json
+      </p>
+<details class="sg-record-raw">
+<summary>元JSONの該当記録を表示</summary>
+<h4>5形式実測結果</h4>
+<pre>{
+  "ext": "mp3",
+  "mode": "normal",
+  "name": "監査 fixture-silence-cut.mp3",
+  "tags": {
+    "title": "AUDIT_TITLE",
+    "artist": "AUDIT_ARTIST",
+    "album": "AUDIT_ALBUM",
+    "comment": "AUDIT_COMMENT",
+    "location": "+35.0000+139.0000/",
+    "encoder": "Lavf59.27.100",
+    "creation_time": "2020-01-02T03:04:05.000000Z"
+  },
+  "chapters": [
+    {
+      "id": 0,
+      "time_base": "1/1000",
+      "start": 0,
+      "start_time": "0.000000",
+      "end": 977,
+      "end_time": "0.977000",
+      "tags": {
+        "title": "ch0"
+      }
+    }
+  ],
+  "playback": {
+    "duration": 4.2,
+    "currentTime": 0.201131,
+    "width": 0,
+    "height": 0
+  },
+  "size": "18435"
+}</pre>
+<h4>保存後ffprobe</h4>
+<pre>{
+  "streams": [
+    {
+      "index": 0,
+      "codec_name": "mp3",
+      "codec_long_name": "MP3 (MPEG audio layer 3)",
+      "codec_type": "audio",
+      "codec_tag_string": "[0][0][0][0]",
+      "codec_tag": "0x0000",
+      "sample_fmt": "fltp",
+      "sample_rate": "48000",
+      "channels": 1,
+      "channel_layout": "mono",
+      "bits_per_sample": 0,
+      "initial_padding": 0,
+      "r_frame_rate": "0/0",
+      "avg_frame_rate": "0/0",
+      "time_base": "1/14112000",
+      "start_pts": 324870,
+      "start_time": "0.023021",
+      "duration_ts": 59609088,
+      "duration": "4.224000",
+      "bit_rate": "34364",
+      "disposition": {
+        "default": 0,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      }
+    }
+  ],
+  "chapters": [
+    {
+      "id": 0,
+      "time_base": "1/1000",
+      "start": 0,
+      "start_time": "0.000000",
+      "end": 977,
+      "end_time": "0.977000",
+      "tags": {
+        "title": "ch0"
+      }
+    }
+  ],
+  "format": {
+    "filename": "D:\\My_app\\_projects\\Sakutio\\Silence-Cutter\\app\\tmp-test-media\\privacy-audit\\production-normal.mp3",
+    "nb_streams": 1,
+    "nb_programs": 0,
+    "format_name": "mp3",
+    "format_long_name": "MP2/3 (MPEG audio layer 2/3)",
+    "start_time": "0.023021",
+    "duration": "4.224000",
+    "size": "18435",
+    "bit_rate": "34914",
+    "probe_score": 51,
+    "tags": {
+      "title": "AUDIT_TITLE",
+      "artist": "AUDIT_ARTIST",
+      "album": "AUDIT_ALBUM",
+      "comment": "AUDIT_COMMENT",
+      "location": "+35.0000+139.0000/",
+      "encoder": "Lavf59.27.100",
+      "creation_time": "2020-01-02T03:04:05.000000Z"
+    }
+  }
+}</pre>
+</details>
+</template><template id="record-wav">
+<div class="sg-record-head">
+<span class="sg-record-kicker">実測記録</span>
+<h3>WAV</h3>
+</div><p class="sg-record-explain">この記録は、この形式で無音検出・カット・保存まで完了し、保存後のファイル情報も確認した結果です。「codec」は保存後ファイルの形式、「duration」は再生時間、「size」はファイル容量を表します。</p>
+<dl class="sg-record-summary">
+<div><dt>保存ファイル</dt><dd>監査 fixture-silence-cut.wav</dd></div>
+<div><dt>再生確認</dt><dd>4.2 秒</dd></div>
+<div><dt>出力サイズ</dt><dd>403362 bytes</dd></div>
+<div><dt>ffprobe codec</dt><dd>pcm_s16le</dd></div>
+<div><dt>ffprobe duration</dt><dd>4.200000 秒</dd></div>
+<div><dt>エラー</dt><dd>なし</dd></div>
+</dl>
+<p class="sg-record-source">
+        出典：02-production-five-formats-results.json / production-output-wav.json
+      </p>
+<details class="sg-record-raw">
+<summary>元JSONの該当記録を表示</summary>
+<h4>5形式実測結果</h4>
+<pre>{
+  "ext": "wav",
+  "mode": "normal",
+  "name": "監査 fixture-silence-cut.wav",
+  "tags": {
+    "artist": "AUDIT_ARTIST",
+    "comment": "AUDIT_COMMENT",
+    "title": "AUDIT_TITLE",
+    "album": "AUDIT_ALBUM",
+    "encoder": "Lavf59.27.100"
+  },
+  "chapters": [],
+  "playback": {
+    "duration": 4.2,
+    "currentTime": 0.210713,
+    "width": 0,
+    "height": 0
+  },
+  "size": "403362"
+}</pre>
+<h4>保存後ffprobe</h4>
+<pre>{
+  "streams": [
+    {
+      "index": 0,
+      "codec_name": "pcm_s16le",
+      "codec_long_name": "PCM signed 16-bit little-endian",
+      "codec_type": "audio",
+      "codec_tag_string": "[1][0][0][0]",
+      "codec_tag": "0x0001",
+      "sample_fmt": "s16",
+      "sample_rate": "48000",
+      "channels": 1,
+      "bits_per_sample": 16,
+      "initial_padding": 0,
+      "r_frame_rate": "0/0",
+      "avg_frame_rate": "0/0",
+      "time_base": "1/48000",
+      "duration_ts": 201600,
+      "duration": "4.200000",
+      "bit_rate": "768000",
+      "disposition": {
+        "default": 0,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      }
+    }
+  ],
+  "chapters": [],
+  "format": {
+    "filename": "D:\\My_app\\_projects\\Sakutio\\Silence-Cutter\\app\\tmp-test-media\\privacy-audit\\production-normal.wav",
+    "nb_streams": 1,
+    "nb_programs": 0,
+    "format_name": "wav",
+    "format_long_name": "WAV / WAVE (Waveform Audio)",
+    "duration": "4.200000",
+    "size": "403362",
+    "bit_rate": "768308",
+    "probe_score": 99,
+    "tags": {
+      "artist": "AUDIT_ARTIST",
+      "comment": "AUDIT_COMMENT",
+      "title": "AUDIT_TITLE",
+      "album": "AUDIT_ALBUM",
+      "encoder": "Lavf59.27.100"
+    }
+  }
+}</pre>
+</details>
+</template><template id="record-m4a">
+<div class="sg-record-head">
+<span class="sg-record-kicker">実測記録</span>
+<h3>M4A</h3>
+</div><p class="sg-record-explain">この記録は、この形式で無音検出・カット・保存まで完了し、保存後のファイル情報も確認した結果です。「codec」は保存後ファイルの形式、「duration」は再生時間、「size」はファイル容量を表します。</p>
+<dl class="sg-record-summary">
+<div><dt>保存ファイル</dt><dd>監査 fixture-silence-cut.m4a</dd></div>
+<div><dt>再生確認</dt><dd>4.2 秒</dd></div>
+<div><dt>出力サイズ</dt><dd>65289 bytes</dd></div>
+<div><dt>ffprobe codec</dt><dd>aac, bin_data</dd></div>
+<div><dt>ffprobe duration</dt><dd>4.200000 秒</dd></div>
+<div><dt>エラー</dt><dd>なし</dd></div>
+</dl>
+<p class="sg-record-source">
+        出典：02-production-five-formats-results.json / production-output-m4a.json
+      </p>
+<details class="sg-record-raw">
+<summary>元JSONの該当記録を表示</summary>
+<h4>5形式実測結果</h4>
+<pre>{
+  "ext": "m4a",
+  "mode": "normal",
+  "name": "監査 fixture-silence-cut.m4a",
+  "tags": {
+    "major_brand": "M4A ",
+    "minor_version": "512",
+    "compatible_brands": "M4A isomiso2",
+    "creation_time": "2020-01-02T03:04:05.000000Z",
+    "title": "AUDIT_TITLE",
+    "artist": "AUDIT_ARTIST",
+    "album": "AUDIT_ALBUM",
+    "encoder": "Lavf59.27.100",
+    "comment": "AUDIT_COMMENT",
+    "location-eng": "+35.0000+139.0000/",
+    "location": "+35.0000+139.0000/"
+  },
+  "chapters": [
+    {
+      "id": 0,
+      "time_base": "1/1000",
+      "start": 0,
+      "start_time": "0.000000",
+      "end": 6000,
+      "end_time": "6.000000",
+      "tags": {
+        "title": ""
+      }
+    }
+  ],
+  "playback": {
+    "duration": 4.2,
+    "currentTime": 0.217706,
+    "width": 0,
+    "height": 0
+  },
+  "size": "65289"
+}</pre>
+<h4>保存後ffprobe</h4>
+<pre>{
+  "streams": [
+    {
+      "index": 0,
+      "codec_name": "aac",
+      "codec_long_name": "AAC (Advanced Audio Coding)",
+      "profile": "LC",
+      "codec_type": "audio",
+      "codec_tag_string": "mp4a",
+      "codec_tag": "0x6134706d",
+      "sample_fmt": "fltp",
+      "sample_rate": "48000",
+      "channels": 1,
+      "channel_layout": "mono",
+      "bits_per_sample": 0,
+      "initial_padding": 0,
+      "id": "0x1",
+      "r_frame_rate": "0/0",
+      "avg_frame_rate": "0/0",
+      "time_base": "1/48000",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "duration_ts": 201600,
+      "duration": "4.200000",
+      "bit_rate": "119266",
+      "nb_frames": "198",
+      "extradata_size": 5,
+      "disposition": {
+        "default": 1,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "creation_time": "2020-01-02T03:04:05.000000Z",
+        "language": "und",
+        "handler_name": "SoundHandler",
+        "vendor_id": "[0][0][0][0]"
+      }
+    },
+    {
+      "index": 1,
+      "codec_name": "bin_data",
+      "codec_long_name": "binary data",
+      "codec_type": "data",
+      "codec_tag_string": "text",
+      "codec_tag": "0x74786574",
+      "id": "0x2",
+      "r_frame_rate": "0/0",
+      "avg_frame_rate": "0/0",
+      "time_base": "1/1000",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "duration_ts": 6000,
+      "duration": "6.000000",
+      "bit_rate": "18",
+      "nb_frames": "1",
+      "extradata_size": 43,
+      "disposition": {
+        "default": 0,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "creation_time": "2020-01-02T03:04:05.000000Z",
+        "language": "eng",
+        "handler_name": "SubtitleHandler"
+      }
+    }
+  ],
+  "chapters": [
+    {
+      "id": 0,
+      "time_base": "1/1000",
+      "start": 0,
+      "start_time": "0.000000",
+      "end": 6000,
+      "end_time": "6.000000",
+      "tags": {
+        "title": ""
+      }
+    }
+  ],
+  "format": {
+    "filename": "D:\\My_app\\_projects\\Sakutio\\Silence-Cutter\\app\\tmp-test-media\\privacy-audit\\production-normal.m4a",
+    "nb_streams": 2,
+    "nb_programs": 0,
+    "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+    "format_long_name": "QuickTime / MOV",
+    "start_time": "0.000000",
+    "duration": "4.200000",
+    "size": "65289",
+    "bit_rate": "124360",
+    "probe_score": 100,
+    "tags": {
+      "major_brand": "M4A ",
+      "minor_version": "512",
+      "compatible_brands": "M4A isomiso2",
+      "creation_time": "2020-01-02T03:04:05.000000Z",
+      "title": "AUDIT_TITLE",
+      "artist": "AUDIT_ARTIST",
+      "album": "AUDIT_ALBUM",
+      "encoder": "Lavf59.27.100",
+      "comment": "AUDIT_COMMENT",
+      "location-eng": "+35.0000+139.0000/",
+      "location": "+35.0000+139.0000/"
+    }
+  }
+}</pre>
+</details>
+</template><template id="record-mp4">
+<div class="sg-record-head">
+<span class="sg-record-kicker">実測記録</span>
+<h3>MP4</h3>
+</div><p class="sg-record-explain">この記録は、この形式で無音検出・カット・保存まで完了し、保存後のファイル情報も確認した結果です。「codec」は保存後ファイルの形式、「duration」は再生時間、「size」はファイル容量を表します。</p>
+<dl class="sg-record-summary">
+<div><dt>保存ファイル</dt><dd>監査 fixture-silence-cut.mp4</dd></div>
+<div><dt>再生確認</dt><dd>4.2 秒</dd></div>
+<div><dt>出力サイズ</dt><dd>109047 bytes</dd></div>
+<div><dt>ffprobe codec</dt><dd>h264, aac, bin_data</dd></div>
+<div><dt>ffprobe duration</dt><dd>4.200000 秒</dd></div>
+<div><dt>エラー</dt><dd>なし</dd></div>
+</dl>
+<p class="sg-record-source">
+        出典：02-production-five-formats-results.json / production-output-mp4.json
+      </p>
+<details class="sg-record-raw">
+<summary>元JSONの該当記録を表示</summary>
+<h4>5形式実測結果</h4>
+<pre>{
+  "ext": "mp4",
+  "mode": "normal",
+  "name": "監査 fixture-silence-cut.mp4",
+  "tags": {
+    "major_brand": "isom",
+    "minor_version": "512",
+    "compatible_brands": "isomiso2avc1mp41",
+    "creation_time": "2020-01-02T03:04:05.000000Z",
+    "title": "AUDIT_TITLE",
+    "artist": "AUDIT_ARTIST",
+    "album": "AUDIT_ALBUM",
+    "encoder": "Lavf59.27.100",
+    "comment": "AUDIT_COMMENT",
+    "location-eng": "+35.0000+139.0000/",
+    "location": "+35.0000+139.0000/"
+  },
+  "chapters": [
+    {
+      "id": 0,
+      "time_base": "1/1000",
+      "start": 0,
+      "start_time": "0.000000",
+      "end": 6000,
+      "end_time": "6.000000",
+      "tags": {
+        "title": ""
+      }
+    }
+  ],
+  "playback": {
+    "duration": 4.2,
+    "currentTime": 0.196147,
+    "width": 160,
+    "height": 90
+  },
+  "size": "109047"
+}</pre>
+<h4>保存後ffprobe</h4>
+<pre>{
+  "streams": [
+    {
+      "index": 0,
+      "codec_name": "h264",
+      "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+      "profile": "High",
+      "codec_type": "video",
+      "codec_tag_string": "avc1",
+      "codec_tag": "0x31637661",
+      "width": 160,
+      "height": 90,
+      "coded_width": 160,
+      "coded_height": 90,
+      "closed_captions": 0,
+      "film_grain": 0,
+      "has_b_frames": 2,
+      "sample_aspect_ratio": "1:1",
+      "display_aspect_ratio": "16:9",
+      "pix_fmt": "yuv420p",
+      "level": 10,
+      "chroma_location": "left",
+      "field_order": "progressive",
+      "refs": 1,
+      "is_avc": "true",
+      "nal_length_size": "4",
+      "id": "0x1",
+      "r_frame_rate": "10/1",
+      "avg_frame_rate": "10/1",
+      "time_base": "1/10240",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "duration_ts": 43008,
+      "duration": "4.200000",
+      "bit_rate": "79912",
+      "bits_per_raw_sample": "8",
+      "nb_frames": "42",
+      "extradata_size": 45,
+      "disposition": {
+        "default": 1,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "creation_time": "2020-01-02T03:04:05.000000Z",
+        "language": "und",
+        "handler_name": "VideoHandler",
+        "vendor_id": "[0][0][0][0]",
+        "encoder": "Lavc59.37.100 libx264"
+      }
+    },
+    {
+      "index": 1,
+      "codec_name": "aac",
+      "codec_long_name": "AAC (Advanced Audio Coding)",
+      "profile": "LC",
+      "codec_type": "audio",
+      "codec_tag_string": "mp4a",
+      "codec_tag": "0x6134706d",
+      "sample_fmt": "fltp",
+      "sample_rate": "48000",
+      "channels": 1,
+      "channel_layout": "mono",
+      "bits_per_sample": 0,
+      "initial_padding": 0,
+      "id": "0x2",
+      "r_frame_rate": "0/0",
+      "avg_frame_rate": "0/0",
+      "time_base": "1/48000",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "duration_ts": 201600,
+      "duration": "4.200000",
+      "bit_rate": "119266",
+      "nb_frames": "198",
+      "extradata_size": 5,
+      "disposition": {
+        "default": 1,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "creation_time": "2020-01-02T03:04:05.000000Z",
+        "language": "und",
+        "handler_name": "SoundHandler",
+        "vendor_id": "[0][0][0][0]"
+      }
+    },
+    {
+      "index": 2,
+      "codec_name": "bin_data",
+      "codec_long_name": "binary data",
+      "codec_type": "data",
+      "codec_tag_string": "text",
+      "codec_tag": "0x74786574",
+      "id": "0x3",
+      "r_frame_rate": "0/0",
+      "avg_frame_rate": "0/0",
+      "time_base": "1/1000",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "duration_ts": 6000,
+      "duration": "6.000000",
+      "bit_rate": "18",
+      "nb_frames": "1",
+      "extradata_size": 63,
+      "disposition": {
+        "default": 0,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "creation_time": "2020-01-02T03:04:05.000000Z",
+        "language": "eng",
+        "handler_name": "SubtitleHandler"
+      }
+    }
+  ],
+  "chapters": [
+    {
+      "id": 0,
+      "time_base": "1/1000",
+      "start": 0,
+      "start_time": "0.000000",
+      "end": 6000,
+      "end_time": "6.000000",
+      "tags": {
+        "title": ""
+      }
+    }
+  ],
+  "format": {
+    "filename": "D:\\My_app\\_projects\\Sakutio\\Silence-Cutter\\app\\tmp-test-media\\privacy-audit\\production-normal.mp4",
+    "nb_streams": 3,
+    "nb_programs": 0,
+    "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+    "format_long_name": "QuickTime / MOV",
+    "start_time": "0.000000",
+    "duration": "4.200000",
+    "size": "109047",
+    "bit_rate": "207708",
+    "probe_score": 100,
+    "tags": {
+      "major_brand": "isom",
+      "minor_version": "512",
+      "compatible_brands": "isomiso2avc1mp41",
+      "creation_time": "2020-01-02T03:04:05.000000Z",
+      "title": "AUDIT_TITLE",
+      "artist": "AUDIT_ARTIST",
+      "album": "AUDIT_ALBUM",
+      "encoder": "Lavf59.27.100",
+      "comment": "AUDIT_COMMENT",
+      "location-eng": "+35.0000+139.0000/",
+      "location": "+35.0000+139.0000/"
+    }
+  }
+}</pre>
+</details>
+</template><template id="record-mov">
+<div class="sg-record-head">
+<span class="sg-record-kicker">実測記録</span>
+<h3>MOV</h3>
+</div><p class="sg-record-explain">この記録は、この形式で無音検出・カット・保存まで完了し、保存後のファイル情報も確認した結果です。「codec」は保存後ファイルの形式、「duration」は再生時間、「size」はファイル容量を表します。</p>
+<dl class="sg-record-summary">
+<div><dt>保存ファイル</dt><dd>監査 fixture-silence-cut.mov</dd></div>
+<div><dt>再生確認</dt><dd>4.2 秒</dd></div>
+<div><dt>出力サイズ</dt><dd>109094 bytes</dd></div>
+<div><dt>ffprobe codec</dt><dd>h264, aac, bin_data</dd></div>
+<div><dt>ffprobe duration</dt><dd>4.200000 秒</dd></div>
+<div><dt>エラー</dt><dd>なし</dd></div>
+</dl>
+<p class="sg-record-source">
+        出典：02-production-five-formats-results.json / production-output-mov.json
+      </p>
+<details class="sg-record-raw">
+<summary>元JSONの該当記録を表示</summary>
+<h4>5形式実測結果</h4>
+<pre>{
+  "ext": "mov",
+  "mode": "normal",
+  "name": "監査 fixture-silence-cut.mov",
+  "tags": {
+    "major_brand": "qt  ",
+    "minor_version": "512",
+    "compatible_brands": "qt  ",
+    "creation_time": "2020-01-02T03:04:05.000000Z",
+    "artist": "AUDIT_ARTIST",
+    "title": "AUDIT_TITLE",
+    "album": "AUDIT_ALBUM",
+    "encoder": "Lavf59.27.100",
+    "comment": "AUDIT_COMMENT",
+    "location": "+35.0000+139.0000/"
+  },
+  "chapters": [
+    {
+      "id": 0,
+      "time_base": "1/1000",
+      "start": 0,
+      "start_time": "0.000000",
+      "end": 6000,
+      "end_time": "6.000000",
+      "tags": {
+        "title": ""
+      }
+    }
+  ],
+  "playback": {
+    "duration": 4.2,
+    "currentTime": 0.200114,
+    "width": 160,
+    "height": 90
+  },
+  "size": "109094"
+}</pre>
+<h4>保存後ffprobe</h4>
+<pre>{
+  "streams": [
+    {
+      "index": 0,
+      "codec_name": "h264",
+      "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+      "profile": "High",
+      "codec_type": "video",
+      "codec_tag_string": "avc1",
+      "codec_tag": "0x31637661",
+      "width": 160,
+      "height": 90,
+      "coded_width": 160,
+      "coded_height": 90,
+      "closed_captions": 0,
+      "film_grain": 0,
+      "has_b_frames": 2,
+      "sample_aspect_ratio": "1:1",
+      "display_aspect_ratio": "16:9",
+      "pix_fmt": "yuv420p",
+      "level": 10,
+      "chroma_location": "left",
+      "field_order": "progressive",
+      "refs": 1,
+      "is_avc": "true",
+      "nal_length_size": "4",
+      "id": "0x1",
+      "r_frame_rate": "10/1",
+      "avg_frame_rate": "10/1",
+      "time_base": "1/10240",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "duration_ts": 43008,
+      "duration": "4.200000",
+      "bit_rate": "79912",
+      "bits_per_raw_sample": "8",
+      "nb_frames": "42",
+      "extradata_size": 45,
+      "disposition": {
+        "default": 1,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "creation_time": "2020-01-02T03:04:05.000000Z",
+        "handler_name": "VideoHandler",
+        "vendor_id": "FFMP",
+        "encoder": "Lavc59.37.100 libx264"
+      }
+    },
+    {
+      "index": 1,
+      "codec_name": "aac",
+      "codec_long_name": "AAC (Advanced Audio Coding)",
+      "profile": "LC",
+      "codec_type": "audio",
+      "codec_tag_string": "mp4a",
+      "codec_tag": "0x6134706d",
+      "sample_fmt": "fltp",
+      "sample_rate": "48000",
+      "channels": 1,
+      "channel_layout": "mono",
+      "bits_per_sample": 0,
+      "initial_padding": 0,
+      "id": "0x2",
+      "r_frame_rate": "0/0",
+      "avg_frame_rate": "0/0",
+      "time_base": "1/48000",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "duration_ts": 201600,
+      "duration": "4.200000",
+      "bit_rate": "119266",
+      "nb_frames": "198",
+      "extradata_size": 5,
+      "disposition": {
+        "default": 1,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "creation_time": "2020-01-02T03:04:05.000000Z",
+        "handler_name": "SoundHandler",
+        "vendor_id": "[0][0][0][0]"
+      }
+    },
+    {
+      "index": 2,
+      "codec_name": "bin_data",
+      "codec_long_name": "binary data",
+      "codec_type": "data",
+      "codec_tag_string": "text",
+      "codec_tag": "0x74786574",
+      "id": "0x3",
+      "r_frame_rate": "0/0",
+      "avg_frame_rate": "0/0",
+      "time_base": "1/1000",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "duration_ts": 6000,
+      "duration": "6.000000",
+      "bit_rate": "18",
+      "nb_frames": "1",
+      "extradata_size": 43,
+      "disposition": {
+        "default": 0,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "creation_time": "2020-01-02T03:04:05.000000Z",
+        "language": "eng",
+        "handler_name": "SubtitleHandler"
+      }
+    }
+  ],
+  "chapters": [
+    {
+      "id": 0,
+      "time_base": "1/1000",
+      "start": 0,
+      "start_time": "0.000000",
+      "end": 6000,
+      "end_time": "6.000000",
+      "tags": {
+        "title": ""
+      }
+    }
+  ],
+  "format": {
+    "filename": "D:\\My_app\\_projects\\Sakutio\\Silence-Cutter\\app\\tmp-test-media\\privacy-audit\\production-normal.mov",
+    "nb_streams": 3,
+    "nb_programs": 0,
+    "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+    "format_long_name": "QuickTime / MOV",
+    "start_time": "0.000000",
+    "duration": "4.200000",
+    "size": "109094",
+    "bit_rate": "207798",
+    "probe_score": 100,
+    "tags": {
+      "major_brand": "qt  ",
+      "minor_version": "512",
+      "compatible_brands": "qt  ",
+      "creation_time": "2020-01-02T03:04:05.000000Z",
+      "artist": "AUDIT_ARTIST",
+      "title": "AUDIT_TITLE",
+      "album": "AUDIT_ALBUM",
+      "encoder": "Lavf59.27.100",
+      "comment": "AUDIT_COMMENT",
+      "location": "+35.0000+139.0000/"
+    }
+  }
+}</pre>
+</details>
+</template>
+</div>
+<script>
+    (() => {
+      const recordDialog = document.getElementById('sg-record-dialog');
+      const recordContent = document.getElementById('sg-record-dialog-content');
+      const recordClose = recordDialog?.querySelector('.sg-record-dialog__close');
+      let lastRecordTrigger = null;
+
+      document.addEventListener('click', (event) => {
+        if (!(event.target instanceof Element)) return;
+
+        const zoom = event.target.closest('.sg-figure__zoom');
+        const fullSrc = zoom instanceof HTMLButtonElement ? zoom.dataset.fullSrc : '';
+        if (fullSrc) {
+          queueMicrotask(() => {
+            const imageDialog = document.getElementById('sg-guide-lightbox');
+            const image = imageDialog?.querySelector('.sg-lightbox__image');
+            if (imageDialog instanceof HTMLDialogElement &&
+                imageDialog.open &&
+                image instanceof HTMLImageElement) {
+              image.src = fullSrc;
+            }
+          });
+        }
+
+        const recordButton = event.target.closest('.sg-record-open');
+        if (!(recordButton instanceof HTMLButtonElement) ||
+            !(recordDialog instanceof HTMLDialogElement) ||
+            !recordContent) return;
+
+        const key = recordButton.dataset.record;
+        const template = key ? document.getElementById(`record-${key}`) : null;
+        if (!(template instanceof HTMLTemplateElement)) return;
+
+        lastRecordTrigger = recordButton;
+        recordContent.replaceChildren(template.content.cloneNode(true));
+        document.body.classList.add('sg-modal-open');
+        recordDialog.showModal();
+      });
+
+      recordClose?.addEventListener('click', () => {
+        if (recordDialog instanceof HTMLDialogElement) recordDialog.close();
+      });
+      recordDialog?.addEventListener('click', (event) => {
+        if (event.target === recordDialog) recordDialog.close();
+      });
+      recordDialog?.addEventListener('close', () => {
+        document.body.classList.remove('sg-modal-open');
+        if (lastRecordTrigger instanceof HTMLElement) lastRecordTrigger.focus();
+        lastRecordTrigger = null;
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        if (recordDialog instanceof HTMLDialogElement && recordDialog.open) {
+          recordDialog.close();
+          return;
+        }
+        const imageDialog = document.getElementById('sg-guide-lightbox');
+        if (imageDialog instanceof HTMLDialogElement && imageDialog.open) {
+          imageDialog.close();
+        }
+      }, true);
+    })();
+</script>
+</body>
+</html>
