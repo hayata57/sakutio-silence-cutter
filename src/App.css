@@ -144,3 +144,7 @@
 .legal-links { margin: 14px 0 2px; text-align: center; font-size: 11px; }
 .legal-links a { color: #65718a; text-decoration: underline; text-underline-offset: 3px; }
 .legal-links a:hover { color: var(--brand); }
+
+header.sakutio-chrome.sakutio-chrome--header {
+  position: static;
+}
